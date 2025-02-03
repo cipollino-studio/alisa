@@ -8,9 +8,6 @@ pub use project::*;
 mod operation;
 pub use operation::*;
 
-mod deltas;
-pub(crate) use deltas::*;
-
 mod client;
 pub use client::*;
 
