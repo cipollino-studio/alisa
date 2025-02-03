@@ -17,14 +17,11 @@ pub use client::*;
 mod server;
 pub use server::*;
 
-mod action;
-pub use action::*;
-
 mod serialization;
 pub use serialization::*;
 
-mod keychain;
-use keychain::*;
+mod action;
+pub use action::*;
 
 mod util;
 pub use util::*;

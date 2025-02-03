@@ -8,7 +8,7 @@ pub struct ProjectObjects {
     pub folders: alisa::ObjList<Folder>,
 }
 
-#[derive(alisa::Loadable)]
+#[derive(alisa::Serializable)]
 #[project(Project)]
 pub struct Project {
     pub n: i32,

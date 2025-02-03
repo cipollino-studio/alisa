@@ -30,6 +30,7 @@ macro_rules! project_set_property_operation {
         paste::paste! {
 
             #[derive(alisa::Serializable, Default)]
+            #[project($project)]
             pub struct [< Set $property:camel >] {
                 pub $property: $T
             }
@@ -94,6 +95,7 @@ macro_rules! object_set_property_operation {
             alisa::object_set_property_delta!($object, $property, $T);    
 
             #[derive(alisa::Serializable, Default)]
+            #[project(<$object as alisa::Object>::Project)]
             pub struct [<Set $object:camel $property:camel >] {
                 pub ptr: alisa::ObjPtr<$object>,
                 pub [< $property:snake _value >]: $T

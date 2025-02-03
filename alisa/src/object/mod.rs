@@ -1,12 +1,10 @@
 
 use std::{cell::RefCell, collections::{HashMap, HashSet}, hash::Hash, marker::PhantomData};
 
-use crate::{rmpv_encode, DeleteObjectDelta, Project, Recorder, RecreateObjectDelta};
+use crate::{rmpv_encode, DeleteObjectDelta, Project, Recorder, RecreateObjectDelta, Serializable, SerializationContext};
 
-mod loading;
-pub use loading::*;
 
-pub trait Object: Sized + Clone + Loadable<Self::Project> + 'static {
+pub trait Object: Sized + Clone + Serializable<Self::Project> + 'static {
 
     type Project: Project;
 
@@ -95,7 +93,7 @@ pub struct ObjList<Obj: Object> {
     modified: HashSet<ObjPtr<Obj>>,
     to_delete: HashSet<ObjPtr<Obj>>,
     /// The pointers to the object data stored in the Verter file
-    file_ptrs: RefCell<HashMap<ObjPtr<Obj>, u64>>
+    pub(crate) file_ptrs: RefCell<HashMap<ObjPtr<Obj>, u64>>
 }
 
 impl<Obj: Object> ObjList<Obj> {
@@ -164,7 +162,7 @@ impl<P: Project> ObjectKind<P> {
             save_modifications: |file, objects| {
                 for modified in std::mem::replace(&mut O::list_mut(objects).modified, HashSet::new()) {
                     if let Some(object) = O::list(objects).get(modified) {
-                        let object_data = object.store(&StoringContext::shallow(objects, file));
+                        let object_data = object.serialize(&SerializationContext::shallow(objects, file));
                         if let Some(ptr) = O::list(objects).get_file_ptr(modified, file) {
                             if let Some(encoded_data) = rmpv_encode(&object_data) {
                                 let _ = file.write(ptr, &encoded_data);

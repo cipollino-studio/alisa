@@ -1,14 +1,14 @@
 
 use std::any::{Any, TypeId};
 
-use crate::{ObjList, Object, Project, Serializable};
+use crate::{Serializable, DeserializationContext, ObjList, Object, Project, SerializationContext};
 
 mod common;
 
 /// An operation performed on the project. 
 /// Operations can be inverted for undo/redo. 
 /// Note that when collaborating, undoing an operation and redoing might not return to the original state of the project. 
-pub trait Operation: Sized + Any + Serializable {
+pub trait Operation: Sized + Any + Serializable<Self::Project> {
 
     type Project: Project;
     type Inverse: Operation<Project = Self::Project, Inverse = Self>;
@@ -33,7 +33,7 @@ pub(crate) trait OperationDyn {
     fn serialize(&self) -> rmpv::Value;
 }
 
-impl<O: Operation + Serializable> OperationDyn for O {
+impl<O: Operation + Serializable<O::Project>> OperationDyn for O {
     type Project = O::Project;
 
     fn perform(&self, recorder: &mut Recorder<'_, Self::Project>) {
@@ -52,7 +52,7 @@ impl<O: Operation + Serializable> OperationDyn for O {
     }
 
     fn serialize(&self) -> rmpv::Value {
-        self.serialize()
+        self.serialize(&SerializationContext::data())
     }
 
 }
@@ -73,7 +73,7 @@ impl<P: Project> OperationKind<P> {
         Self {
             name: O::NAME,
             deserialize: |data| {
-                Some(Box::new(O::deserialize(data)?))
+                Some(Box::new(O::deserialize(data, &mut DeserializationContext::data())?))
             },
             perform: |operation, recorder| {
                 let Ok(operation) = operation.downcast::<O>() else { return; };

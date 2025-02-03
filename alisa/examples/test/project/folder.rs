@@ -4,7 +4,7 @@ use alisa::Object;
 
 use super::{Project, ProjectObjects, SetFoldersDelta};
 
-#[derive(Clone, alisa::Loadable)]
+#[derive(Clone, alisa::Serializable)]
 #[project(Project)]
 pub struct Folder {
     pub name: String,
@@ -36,6 +36,7 @@ impl alisa::Object for Folder {
 }
 
 #[derive(alisa::Serializable)]
+#[project(Project)]
 pub struct CreateFolder {
     pub ptr: alisa::ObjPtr<Folder>,
     pub name: String
@@ -50,6 +51,7 @@ impl Default for CreateFolder {
 }
 
 #[derive(alisa::Serializable)]
+#[project(Project)]
 pub struct DeleteFolder {
     pub ptr: alisa::ObjPtr<Folder>
 }

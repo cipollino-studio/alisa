@@ -1,7 +1,7 @@
 
 use std::{collections::HashMap, fmt::Debug, path::Path};
 
-use crate::{Client, Project, Serializable, StoringContext};
+use crate::{Client, Serializable, Project, SerializationContext};
 
 struct ServerClient {
     to_send: Vec<rmpv::Value>
@@ -26,14 +26,14 @@ impl Debug for ClientId {
 
 }
 
-impl Serializable for ClientId {
+impl<P: Project> Serializable<P> for ClientId {
 
-    fn serialize(&self) -> rmpv::Value {
-        self.0.into()
-    }
-
-    fn deserialize(data: &rmpv::Value) -> Option<Self> {
+    fn deserialize(data: &rmpv::Value, _context: &mut crate::DeserializationContext<P>) -> Option<Self> {
         data.as_u64().map(|id| Self(id))
+    }
+    
+    fn serialize(&self, _context: &SerializationContext<P>) -> rmpv::Value {
+        self.0.into()
     }
 
 }
@@ -58,8 +58,8 @@ impl<P: Project> Server<P> {
             to_send: Vec::new()
         });
 
-        let storing_context = StoringContext::deep(&self.client.objects, self.client.kind.as_local().unwrap().file());
-        let project_data = self.client.project.store(&storing_context); 
+        let storing_context = SerializationContext::deep(&self.client.objects, self.client.kind.as_local().unwrap().file());
+        let project_data = self.client.project.serialize(&storing_context); 
 
         (id, rmpv::Value::Map(vec![
             ("id".into(), id.0.into()),

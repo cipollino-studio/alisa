@@ -1,7 +1,7 @@
 
 use std::{cell::RefCell, marker::PhantomData, path::Path};
 
-use crate::{rmpv_encode, rmpv_get, LoadingContext, Project, StoringContext};
+use crate::{rmpv_encode, rmpv_get, DeserializationContext, Project, SerializationContext};
 
 use super::{Client, ClientKind};
 
@@ -71,7 +71,7 @@ impl<P: Project> Local<P> {
 
         // Project modifications
         if *project_modified {
-            let data = project.store(&StoringContext::shallow(objects, &mut self.file));
+            let data = project.serialize(&SerializationContext::shallow(objects, &mut self.file));
             if let Some(data) = rmpv_encode(&data) {
                 let _ = self.file.write(self.project_ptr, &data);
             }
@@ -102,8 +102,8 @@ impl<P: Project> Client<P> {
         // Load the root project
         let proj_data = proj_ptr.map(|ptr| file.read(ptr).ok()).flatten().map(|data| rmpv::decode::read_value(&mut data.as_slice()).ok()).flatten();
         let mut objects = P::Objects::default();
-        let mut loading_context = LoadingContext::local(&mut objects, &mut file);
-        let project = proj_data.map(|data| P::load(&data, &mut loading_context)).flatten();
+        let mut loading_context = DeserializationContext::local(&mut objects, &mut file);
+        let project = proj_data.map(|data| P::deserialize(&data, &mut loading_context)).flatten();
 
         let (project, local) = if curr_key.is_some() && project.is_some() && proj_ptr.is_some() {
             // The project already exists! Yay! Nothing to see here...
@@ -115,8 +115,8 @@ impl<P: Project> Client<P> {
 
             // Store the newly-created project
             let proj_data_ptr = file.alloc().ok()?;
-            let storing_context = StoringContext::shallow(&objects, &mut file);
-            if let Some(proj_data) = rmpv_encode(&project.store(&storing_context)) {
+            let storing_context = SerializationContext::shallow(&objects, &mut file);
+            if let Some(proj_data) = rmpv_encode(&project.serialize(&storing_context)) {
                 file.write(proj_data_ptr, &proj_data).ok()?;
             }
 

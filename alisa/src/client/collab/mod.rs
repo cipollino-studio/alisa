@@ -1,9 +1,13 @@
 
 use std::cell::RefCell;
 
-use crate::{rmpv_get, Delta, KeyChain, LoadingContext, OperationDyn, Project, ProjectContext, Recorder, UnconfirmedOperation};
+use keychain::KeyChain;
+
+use crate::{rmpv_get, Delta, DeserializationContext, OperationDyn, Project, ProjectContext, Recorder, UnconfirmedOperation};
 
 use super::{Client, ClientKind};
+
+mod keychain;
 
 
 pub(crate) struct Collab<P: Project> {
@@ -65,7 +69,7 @@ impl<P: Project> Client<P> {
         welcome_data.as_map()?;
         let project_data = rmpv_get(&welcome_data, "project")?;
         let mut objects = P::Objects::default();
-        let project = P::load(project_data, &mut LoadingContext::collab(&mut objects))?;
+        let project = P::deserialize(project_data, &mut DeserializationContext::collab(&mut objects))?;
         Some(Self {
             kind: ClientKind::Collab(Collab::new()),
             project,
