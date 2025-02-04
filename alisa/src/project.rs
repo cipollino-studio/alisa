@@ -13,4 +13,11 @@ pub trait Project: Sized + Serializable<Self> + 'static {
     const OBJECTS: &'static [ObjectKind<Self>];
     const OPERATIONS: &'static [OperationKind<Self>];
 
+    fn verter_config() -> verter::Config {
+        verter::Config {
+            magic_bytes: b"ALISA___",
+            page_size: 64,
+        }
+    }
+
 }

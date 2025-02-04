@@ -1,9 +1,9 @@
 
-mod object;
-pub use object::*;
-
 mod project;
 pub use project::*;
+
+mod object;
+pub use object::*;
 
 mod operation;
 pub use operation::*;
@@ -14,11 +14,14 @@ pub use client::*;
 mod server;
 pub use server::*;
 
-mod serialization;
-pub use serialization::*;
-
 mod action;
 pub use action::*;
+
+mod file;
+pub(crate) use file::*;
+
+mod serialization;
+pub use serialization::*;
 
 mod util;
 pub use util::*;

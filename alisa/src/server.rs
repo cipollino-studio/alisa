@@ -58,7 +58,7 @@ impl<P: Project> Server<P> {
             to_send: Vec::new()
         });
 
-        let storing_context = SerializationContext::deep(&self.client.objects, self.client.kind.as_local().unwrap().file());
+        let storing_context = SerializationContext::deep(&self.client.objects);
         let project_data = self.client.project.serialize(&storing_context); 
 
         (id, rmpv::Value::Map(vec![

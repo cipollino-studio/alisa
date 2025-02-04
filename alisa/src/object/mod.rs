@@ -1,8 +1,7 @@
 
-use std::{cell::RefCell, collections::{HashMap, HashSet}, hash::Hash, marker::PhantomData};
+use std::{collections::{HashMap, HashSet}, hash::Hash, marker::PhantomData};
 
-use crate::{rmpv_encode, DeleteObjectDelta, Project, Recorder, RecreateObjectDelta, Serializable, SerializationContext};
-
+use crate::{DeleteObjectDelta, File, Project, Recorder, RecreateObjectDelta, Serializable, SerializationContext};
 
 pub trait Object: Sized + Clone + Serializable<Self::Project> + 'static {
 
@@ -92,8 +91,6 @@ pub struct ObjList<Obj: Object> {
     objs: HashMap<ObjPtr<Obj>, Obj>,
     modified: HashSet<ObjPtr<Obj>>,
     to_delete: HashSet<ObjPtr<Obj>>,
-    /// The pointers to the object data stored in the Verter file
-    pub(crate) file_ptrs: RefCell<HashMap<ObjPtr<Obj>, u64>>
 }
 
 impl<Obj: Object> ObjList<Obj> {
@@ -103,7 +100,6 @@ impl<Obj: Object> ObjList<Obj> {
             objs: HashMap::new(),
             modified: HashSet::new(),
             to_delete: HashSet::new(),
-            file_ptrs: RefCell::new(HashMap::new())
         }
     }
 
@@ -132,15 +128,6 @@ impl<Obj: Object> ObjList<Obj> {
         self.objs.get_mut(&ptr) 
     }
 
-    pub(crate) fn get_file_ptr(&self, ptr: ObjPtr<Obj>, file: &mut verter::File) -> Option<u64> {
-        if let Some(ptr) = self.file_ptrs.borrow().get(&ptr) {
-            return Some(*ptr);
-        }
-        let new_file_ptr = file.alloc().ok()?;
-        self.file_ptrs.borrow_mut().insert(ptr, new_file_ptr);
-        Some(new_file_ptr)
-    }
-
 }
 
 impl<O: Object> Default for ObjList<O> {
@@ -152,7 +139,7 @@ impl<O: Object> Default for ObjList<O> {
 }
 
 pub struct ObjectKind<P: Project> {
-    pub(crate) save_modifications: fn(&mut verter::File, objects: &mut P::Objects)
+    pub(crate) save_modifications: fn(&mut File, objects: &mut P::Objects)
 }
 
 impl<P: Project> ObjectKind<P> {
@@ -162,18 +149,14 @@ impl<P: Project> ObjectKind<P> {
             save_modifications: |file, objects| {
                 for modified in std::mem::replace(&mut O::list_mut(objects).modified, HashSet::new()) {
                     if let Some(object) = O::list(objects).get(modified) {
-                        let object_data = object.serialize(&SerializationContext::shallow(objects, file));
-                        if let Some(ptr) = O::list(objects).get_file_ptr(modified, file) {
-                            if let Some(encoded_data) = rmpv_encode(&object_data) {
-                                let _ = file.write(ptr, &encoded_data);
-                            }
+                        let object_data = object.serialize(&SerializationContext::shallow());
+                        if let Some(ptr) = file.get_ptr(modified.key) {
+                            file.write(ptr, &object_data);
                         }
                     }
                 }
                 for deleted in std::mem::replace(&mut O::list_mut(objects).to_delete, HashSet::new()) {
-                    if let Some(ptr) = O::list(objects).file_ptrs.borrow_mut().remove(&deleted) {
-                        let _ = file.delete(ptr);
-                    }
+                    file.delete(deleted.key);
                 }
             },
         }

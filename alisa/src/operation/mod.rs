@@ -55,7 +55,7 @@ impl<O: Operation + Serializable<O::Project>> OperationDyn for O {
     }
 
     fn serialize(&self) -> rmpv::Value {
-        self.serialize(&SerializationContext::data())
+        self.serialize(&SerializationContext::shallow())
     }
 
 }

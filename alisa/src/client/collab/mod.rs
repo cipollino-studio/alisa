@@ -9,9 +9,8 @@ use super::{Client, ClientKind};
 
 mod keychain;
 
-
 pub(crate) struct Collab<P: Project> {
-    keychain: RefCell<KeyChain<3>>,
+    keychain: RefCell<KeyChain<2>>,
     key_request_sent: bool,
 
     unconfirmed_operations: Vec<UnconfirmedOperation<P>> 

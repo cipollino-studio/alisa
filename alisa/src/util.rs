@@ -14,3 +14,7 @@ pub fn rmpv_encode(data: &rmpv::Value) -> Option<Vec<u8>> {
     rmpv::encode::write_value(&mut bytes, data).ok()?;
     Some(bytes)
 }
+
+pub fn rmpv_decode(mut bytes: &[u8]) -> Option<rmpv::Value> {
+    rmpv::decode::read_value(&mut bytes).ok()
+}
