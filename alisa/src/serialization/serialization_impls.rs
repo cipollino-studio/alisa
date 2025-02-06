@@ -1,5 +1,5 @@
 
-use crate::{ObjPtr, Object, Project};
+use crate::{Ptr, Object, Project};
 use super::{Serializable, DeserializationContext, SerializationContext};
 
 macro_rules! number_loadable_impl {
@@ -68,7 +68,7 @@ impl<P: Project, T: Serializable<P>> Serializable<P> for Vec<T> {
 
 }
 
-impl<O: Object> Serializable<O::Project> for ObjPtr<O> {
+impl<O: Object> Serializable<O::Project> for Ptr<O> {
 
     fn deserialize(data: &rmpv::Value, _context: &mut DeserializationContext<O::Project>) -> Option<Self> {
         data.as_u64().map(Self::from_key)

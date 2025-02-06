@@ -2,7 +2,7 @@
 
 use std::{any::{type_name, TypeId}, cell::RefCell};
 
-use crate::{Act, Action, ObjPtr, Object, Operation, OperationDyn, Project, ProjectContext, Recorder};
+use crate::{Act, Action, Ptr, Object, Operation, OperationDyn, Project, ProjectContext, Recorder};
 
 mod local;
 use local::*;
@@ -71,8 +71,8 @@ impl<P: Project> Client<P> {
         }
     }
 
-    pub fn next_ptr<O: Object>(&self) -> Option<ObjPtr<O>> {
-        self.kind.next_key().map(ObjPtr::from_key)
+    pub fn next_ptr<O: Object>(&self) -> Option<Ptr<O>> {
+        self.kind.next_key().map(Ptr::from_key)
     }
 
     pub fn has_keys(&self) -> bool {
@@ -111,12 +111,10 @@ impl<P: Project> Client<P> {
     }
 
     /// Update the client. Performs all the queued operations. Returns the messages that should be sent to the server.
-    pub fn tick(&mut self, context: &mut P::Context) -> Vec<rmpv::Value> {
+    pub fn tick(&mut self, context: &mut P::Context) {
         let mut operations = self.operations_to_perform.borrow_mut();
         let operations = &mut *operations;
         let operations = std::mem::replace(operations, Vec::new());
-
-        let mut messages = Vec::new();
 
         // Perform queued operations 
         for operation in operations {
@@ -130,29 +128,47 @@ impl<P: Project> Client<P> {
             let deltas = recorder.deltas;
 
             if let Some(collab) = self.kind.as_collab() {
-                collab.perform_operation(operation, deltas, &mut messages); 
+                collab.perform_operation(operation, deltas); 
             }
         }
 
-        // If we're a collab client, ask the server for more keys if need be
         if let Some(collab) = self.kind.as_collab() {
-            collab.request_keys(&mut messages); 
+            collab.request_keys(); 
         }
 
-        // Save all modifications to the file 
         if let Some(local) = self.kind.as_local() {
             local.save_changes(&mut self.project, &mut self.objects, &mut self.project_modified);
+            local.load_objects(&mut self.objects);
         }
         
-        messages
+    }
+
+    pub fn take_messages(&self) -> Vec<rmpv::Value> {
+        match &self.kind {
+            ClientKind::Local(_) => Vec::new(),
+            ClientKind::Collab(collab) => collab.take_messages(),
+        }
     }
 
     pub fn project(&self) -> &P {
         &self.project
     }
 
-    pub fn get<O: Object<Project = P>>(&self, ptr: ObjPtr<O>) -> Option<&O> {
+    pub fn get<O: Object<Project = P>>(&self, ptr: Ptr<O>) -> Option<&O> {
         O::list(&self.objects).get(ptr)
     }
-    
+
+    pub fn request_load<O: Object<Project = P>>(&self, ptr: Ptr<O>) {
+        match &self.kind {
+            ClientKind::Local(_) => { O::list(&self.objects).to_load.borrow_mut().insert(ptr); },
+            ClientKind::Collab(collab) => {
+                collab.send_message(rmpv::Value::Map(vec![
+                    ("type".into(), "load".into()),
+                    ("object".into(), O::NAME.into()),
+                    ("key".into(), ptr.key.into()),
+                ]));
+            },
+        }
+    }
+
 }

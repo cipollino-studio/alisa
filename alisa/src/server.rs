@@ -86,6 +86,8 @@ impl<P: Project> Server<P> {
         let mut msg_type = "";
         let mut operation_name = "";
         let mut data = None;
+        let mut object = "";
+        let mut load_key = 0;
 
         for (key, val) in msg {
             match key.as_str()? {
@@ -97,6 +99,12 @@ impl<P: Project> Server<P> {
                 },
                 "data" => {
                     data = Some(val);
+                },
+                "key" => {
+                    load_key = val.as_u64()?;
+                },
+                "object" => {
+                    object = val.as_str()?;
                 },
                 _ => {}
             } 
@@ -125,6 +133,24 @@ impl<P: Project> Server<P> {
                     ("first".into(), first.into()),
                     ("last".into(), last.into())
                 ]));
+            },
+            "load" => {
+                for object_kind in P::OBJECTS {
+                    if object_kind.name == object {
+                        let local = self.client.kind.as_local().unwrap();
+                        local.dyn_load(&object_kind, &mut self.client.objects, load_key);
+                        let data = (object_kind.serialize_object)(&mut self.client.objects, load_key);
+                        if let Some(data) = data {
+                            self.send(client_id, rmpv::Value::Map(vec![
+                                ("type".into(), "load".into()),
+                                ("object".into(), object.into()),
+                                ("key".into(), load_key.into()),
+                                ("data".into(), data)
+                            ]));
+                        }
+                        break;
+                    }
+                }
             },
             _ => {}
         }

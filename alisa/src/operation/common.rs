@@ -68,7 +68,7 @@ macro_rules! object_set_property_delta {
         paste::paste! {
 
             pub struct [< Set $object:camel $property:camel Delta>] {
-                pub ptr: alisa::ObjPtr<$object>,
+                pub ptr: alisa::Ptr<$object>,
                 pub [< $property:snake _value >] : $T // We add _value to the end to make sure the name doesn't conflict with `ptr`
             }
 
@@ -97,7 +97,7 @@ macro_rules! object_set_property_operation {
             #[derive(alisa::Serializable, Default)]
             #[project(<$object as alisa::Object>::Project)]
             pub struct [<Set $object:camel $property:camel >] {
-                pub ptr: alisa::ObjPtr<$object>,
+                pub ptr: alisa::Ptr<$object>,
                 pub [< $property:snake _value >]: $T
             }
 

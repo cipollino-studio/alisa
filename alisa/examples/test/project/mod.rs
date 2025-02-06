@@ -1,4 +1,4 @@
-use alisa::ObjBox;
+
 use folder::{CreateFolder, DeleteFolder, Folder, SetFolderName};
 
 pub mod folder;
@@ -12,7 +12,7 @@ pub struct ProjectObjects {
 #[project(Project)]
 pub struct Project {
     pub n: i32,
-    pub folders: Vec<ObjBox<Folder>>
+    pub folders: Vec<alisa::Ptr<Folder>>
 }
 
 impl Default for Project {
@@ -55,7 +55,7 @@ impl alisa::Project for Project {
 }
 
 alisa::project_set_property_operation!(Project, n, i32);
-alisa::project_set_property_delta!(Project, folders, Vec<alisa::ObjBox<Folder>>);
+alisa::project_set_property_delta!(Project, folders, Vec<alisa::Ptr<Folder>>);
 
 #[derive(alisa::Serializable, Default)]
 pub struct IncrN;

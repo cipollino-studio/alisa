@@ -1,7 +1,7 @@
 
 use std::{cell::RefCell, marker::PhantomData, path::Path};
 
-use crate::{File, Project, SerializationContext};
+use crate::{File, ObjectKind, Project, SerializationContext};
 
 use super::{Client, ClientKind};
 
@@ -68,6 +68,16 @@ impl<P: Project> Local<P> {
             (object_kind.save_modifications)(&mut self.file, objects);
         }
 
+    }
+
+    pub(crate) fn load_objects(&mut self, objects: &mut P::Objects) {
+        for object_kind in P::OBJECTS {
+            (object_kind.load_objects)(&mut self.file, objects)
+        }
+    }
+
+    pub(crate) fn dyn_load(&mut self, obj_kind: &ObjectKind<P>, objects: &mut P::Objects, key: u64) {
+        (obj_kind.load_object)(&mut self.file, objects, key);
     }
 
 }

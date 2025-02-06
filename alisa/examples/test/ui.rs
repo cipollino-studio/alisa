@@ -47,21 +47,26 @@ impl pierro::DockingTab for ClientTab {
         pierro::v_spacing(ui, 10.0);
 
         pierro::label(ui, format!("Number of folders: {}", self.client.project().folders.len()));
-        for folder_box in &self.client.project().folders {
-            if let Some(folder) = self.client.get(folder_box.ptr()) {
-                pierro::horizontal_fit_centered(ui, |ui| {
-                    pierro::label(ui, format!("- {}", folder.name));
+        for folder_ptr in &self.client.project().folders {
+            pierro::horizontal_fit_centered(ui, |ui| {
+                if let Some(folder) = self.client.get(*folder_ptr) {
+                    pierro::label(ui, format!("- {} ({:?})", folder.name, folder.myself.ptr()));
                     pierro::h_spacing(ui, 5.0);
                     if pierro::button(ui, "Rename").mouse_clicked() {
                         let mut action = alisa::Action::new();
                         self.client.perform(&mut action, SetFolderName {
-                            ptr: folder_box.ptr(),
+                            ptr: *folder_ptr,
                             name_value: folder.name.clone() + "!",
                         });
                         self.actions.add(action);
                     }
-                });
-            }
+                } else {
+                    pierro::label(ui, format!("- UNLOADED [{:?}]", folder_ptr));
+                    if pierro::button(ui, "Load").mouse_clicked() {
+                        self.client.request_load(*folder_ptr);
+                    }
+                }
+            });
         }
         pierro::horizontal(ui, |ui| { 
             if pierro::icon_button(ui, pierro::icons::PLUS).mouse_clicked() {
@@ -92,7 +97,8 @@ impl pierro::DockingTab for ClientTab {
             }
         });
 
-        self.outgoing_msgs.append(&mut self.client.tick(&mut ()));
+        self.client.tick(&mut ());
+        self.outgoing_msgs.append(&mut self.client.take_messages());
 
         pierro::v_spacing(ui, 20.0);
         pierro::label(ui, format!("# Outgoing messages queued: {}", self.outgoing_msgs.len()));

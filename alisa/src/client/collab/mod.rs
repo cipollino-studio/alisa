@@ -12,8 +12,8 @@ mod keychain;
 pub(crate) struct Collab<P: Project> {
     keychain: RefCell<KeyChain<2>>,
     key_request_sent: bool,
-
-    unconfirmed_operations: Vec<UnconfirmedOperation<P>> 
+    unconfirmed_operations: Vec<UnconfirmedOperation<P>>,
+    to_send: RefCell<Vec<rmpv::Value>>
 }
 
 impl<P: Project> Collab<P> {
@@ -23,6 +23,7 @@ impl<P: Project> Collab<P> {
             keychain: RefCell::new(KeyChain::new()),
             key_request_sent: false,
             unconfirmed_operations: Vec::new(),
+            to_send: RefCell::new(Vec::new())
         }
     }
 
@@ -38,18 +39,18 @@ impl<P: Project> Collab<P> {
         self.keychain.borrow_mut().accept_keys(first, last);
     }
 
-    pub(crate) fn request_keys(&mut self, messages: &mut Vec<rmpv::Value>) {
+    pub(crate) fn request_keys(&mut self) {
         let keychain = self.keychain.borrow_mut();
         if keychain.wants_keys() && !self.key_request_sent {
-            messages.push(rmpv::Value::Map(vec![
+            self.send_message(rmpv::Value::Map(vec![
                 ("type".into(), "key_request".into())
             ]));
             self.key_request_sent = true;
         }
     }
 
-    pub(crate) fn perform_operation(&mut self, operation: Box<dyn OperationDyn<Project = P>>, deltas: Vec<Box<dyn Delta<Project = P>>>, messages: &mut Vec<rmpv::Value>) {
-        messages.push(rmpv::Value::Map(vec![
+    pub(crate) fn perform_operation(&mut self, operation: Box<dyn OperationDyn<Project = P>>, deltas: Vec<Box<dyn Delta<Project = P>>>) {
+        self.send_message(rmpv::Value::Map(vec![
             ("type".into(), "operation".into()),
             ("operation".into(), operation.name().into()),
             ("data".into(), operation.serialize())
@@ -58,6 +59,14 @@ impl<P: Project> Collab<P> {
             operation,
             deltas
         });
+    }
+    
+    pub(crate) fn send_message(&self, message: rmpv::Value) {
+        self.to_send.borrow_mut().push(message);
+    }
+
+    pub(crate) fn take_messages(&self) -> Vec<rmpv::Value> {
+        std::mem::replace(&mut *self.to_send.borrow_mut(), Vec::new())
     }
 
 }
@@ -132,6 +141,8 @@ impl<P: Project> Client<P> {
         let mut data = None;
         let mut first = 0;
         let mut last = 0;
+        let mut load_key = 0;
+        let mut object = "";
 
         for (key, val) in msg {
             let key = key.as_str()?;
@@ -150,6 +161,12 @@ impl<P: Project> Client<P> {
                 },
                 "last" => {
                     last = val.as_u64()?;
+                },
+                "key" => {
+                    load_key = val.as_u64()?;
+                },
+                "object" => {
+                    object = val.as_str()?;
                 },
                 _ => {}
             }
@@ -173,7 +190,15 @@ impl<P: Project> Client<P> {
                         collab.key_request_sent = false;
                     }
                 }
-            }
+            },
+            "load" => {
+                for object_kind in P::OBJECTS {
+                    if object_kind.name == object {
+                        (object_kind.load_object_from_message)(&mut self.objects, load_key, data?);
+                        break;
+                    }
+                }
+            },
             _ => {}
         }
 

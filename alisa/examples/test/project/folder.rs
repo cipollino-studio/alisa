@@ -8,13 +8,13 @@ use super::{Project, ProjectObjects, SetFoldersDelta};
 #[project(Project)]
 pub struct Folder {
     pub name: String,
-    pub myself: alisa::ObjBox<Folder>
+    pub myself: alisa::LoadingPtr<Folder>
 }
 
 impl Default for Folder {
 
     fn default() -> Self {
-        Self { name: "Folder".to_owned(), myself: alisa::ObjBox::new(alisa::ObjPtr::null()) }
+        Self { name: "Folder".to_owned(), myself: alisa::LoadingPtr::new(alisa::Ptr::null()) }
     }
 
 }
@@ -38,14 +38,14 @@ impl alisa::Object for Folder {
 #[derive(alisa::Serializable)]
 #[project(Project)]
 pub struct CreateFolder {
-    pub ptr: alisa::ObjPtr<Folder>,
+    pub ptr: alisa::Ptr<Folder>,
     pub name: String
 }
 
 impl Default for CreateFolder {
 
     fn default() -> Self {
-        Self { ptr: alisa::ObjPtr::null(), name: "Folder".to_string() }
+        Self { ptr: alisa::Ptr::null(), name: "Folder".to_string() }
     }
 
 }
@@ -53,13 +53,13 @@ impl Default for CreateFolder {
 #[derive(alisa::Serializable)]
 #[project(Project)]
 pub struct DeleteFolder {
-    pub ptr: alisa::ObjPtr<Folder>
+    pub ptr: alisa::Ptr<Folder>
 }
 
 impl Default for DeleteFolder {
 
     fn default() -> Self {
-        Self { ptr: alisa::ObjPtr::null() }
+        Self { ptr: alisa::Ptr::null() }
     }
 
 }
@@ -76,10 +76,10 @@ impl alisa::Operation for CreateFolder {
         recorder.push_delta(SetFoldersDelta {
             folders: recorder.project().folders.clone() 
         });
-        recorder.project_mut().folders.push(alisa::ObjBox::new(self.ptr)); 
+        recorder.project_mut().folders.push(self.ptr); 
         Folder::add(recorder, self.ptr, Folder {
             name: self.name.clone(),
-            myself: alisa::ObjBox::new(self.ptr),
+            myself: alisa::LoadingPtr::new(self.ptr),
         });
     }
 
@@ -102,7 +102,7 @@ impl alisa::Operation for DeleteFolder {
         recorder.push_delta(SetFoldersDelta {
             folders: recorder.project().folders.clone() 
         });
-        recorder.project_mut().folders.retain(|other| other.ptr() != self.ptr);
+        recorder.project_mut().folders.retain(|other| *other != self.ptr);
         Folder::delete(recorder, self.ptr);
     }
 
