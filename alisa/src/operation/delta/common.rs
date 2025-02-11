@@ -1,8 +1,8 @@
 
 use crate::{Delta, Ptr, Object, ProjectContext};
 
-pub(crate) struct DeleteObjectDelta<O: Object> {
-    pub(crate) ptr: Ptr<O>
+pub struct DeleteObjectDelta<O: Object> {
+    pub ptr: Ptr<O>
 } 
 
 impl<O: Object> Delta for DeleteObjectDelta<O> {
@@ -13,9 +13,9 @@ impl<O: Object> Delta for DeleteObjectDelta<O> {
     }
 }
 
-pub(crate) struct RecreateObjectDelta<O: Object> {
-    pub(crate) ptr: Ptr<O>,
-    pub(crate) obj: O
+pub struct RecreateObjectDelta<O: Object> {
+    pub ptr: Ptr<O>,
+    pub obj: O
 }
 
 impl<O: Object> Delta for RecreateObjectDelta<O> {

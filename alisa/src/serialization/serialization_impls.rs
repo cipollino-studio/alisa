@@ -24,10 +24,12 @@ number_loadable_impl!(i8,  i64);
 number_loadable_impl!(i16, i64);
 number_loadable_impl!(i32, i64);
 number_loadable_impl!(i64, i64);
+number_loadable_impl!(isize, i64);
 number_loadable_impl!(u8,  u64);
 number_loadable_impl!(u16, u64);
 number_loadable_impl!(u32, u64);
 number_loadable_impl!(u64, u64);
+number_loadable_impl!(usize, u64);
 
 impl<P: Project> Serializable<P> for f32 {
 

@@ -92,23 +92,23 @@ macro_rules! object_set_property_delta {
 macro_rules! object_set_property_operation {
     ($object: ty, $property: ident, $T: ty) => {
         paste::paste! {
-            alisa::object_set_property_delta!($object, $property, $T);    
+            ::alisa::object_set_property_delta!($object, $property, $T);    
 
-            #[derive(alisa::Serializable, Default)]
+            #[derive(::alisa::Serializable, Default)]
             #[project(<$object as alisa::Object>::Project)]
             pub struct [<Set $object:camel $property:camel >] {
-                pub ptr: alisa::Ptr<$object>,
+                pub ptr: ::alisa::Ptr<$object>,
                 pub [< $property:snake _value >]: $T
             }
 
-            impl alisa::Operation for [< Set $object:camel $property:camel >] {
+            impl ::alisa::Operation for [< Set $object:camel $property:camel >] {
 
-                type Project = <$object as alisa::Object>::Project;
+                type Project = <$object as ::alisa::Object>::Project;
                 type Inverse = Self;
 
                 const NAME: &'static str = stringify!([< Set $object:camel $property:camel >]);
 
-                fn perform(&self, recorder: &mut alisa::Recorder<Self::Project>) {
+                fn perform(&self, recorder: &mut ::alisa::Recorder<Self::Project>) {
                     if let Some(obj) = recorder.obj_list_mut().get_mut(self.ptr) {
                         let old_val = obj.$property.clone();
                         obj.$property = self.[< $property:snake _value >].clone();
@@ -119,7 +119,7 @@ macro_rules! object_set_property_operation {
                     }
                 }
 
-                fn inverse(&self, _project: &Self::Project, objects: &<Self::Project as alisa::Project>::Objects) -> Option<Self::Inverse> {
+                fn inverse(&self, _project: &Self::Project, objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
                     $object::list(objects).get(self.ptr).map(|obj| Self::Inverse {
                         ptr: self.ptr,
                         [< $property:snake _value >]: obj.$property.clone()

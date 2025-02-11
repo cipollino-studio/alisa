@@ -1,5 +1,6 @@
 
-use folder::{CreateFolder, DeleteFolder, Folder, SetFolderName};
+use alisa::ChildList;
+use folder::{CreateFolder, DeleteFolder, Folder, SetFolderName, TransferFolder};
 
 pub mod folder;
 
@@ -12,14 +13,14 @@ pub struct ProjectObjects {
 #[project(Project)]
 pub struct Project {
     pub n: i32,
-    pub folders: Vec<alisa::Ptr<Folder>>
+    pub folders: ChildList<Folder> 
 }
 
 impl Default for Project {
     fn default() -> Self {
         Self {
             n: 0,
-            folders: Vec::new()
+            folders: ChildList::default() 
         }
     }
 }
@@ -31,7 +32,7 @@ impl alisa::Project for Project {
     fn empty() -> Self {
         Self {
             n: 0,
-            folders: Vec::new()
+            folders: ChildList::default() 
         }
     }
 
@@ -50,12 +51,12 @@ impl alisa::Project for Project {
 
         alisa::OperationKind::from::<CreateFolder>(),
         alisa::OperationKind::from::<DeleteFolder>(),
+        alisa::OperationKind::from::<TransferFolder>(),
         alisa::OperationKind::from::<SetFolderName>(),
     ];
 }
 
 alisa::project_set_property_operation!(Project, n, i32);
-alisa::project_set_property_delta!(Project, folders, Vec<alisa::Ptr<Folder>>);
 
 #[derive(alisa::Serializable, Default)]
 pub struct IncrN;

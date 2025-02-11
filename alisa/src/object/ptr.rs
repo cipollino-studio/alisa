@@ -24,7 +24,7 @@ impl<Obj: Object> Copy for Ptr<Obj> {}
 
 impl<Obj: Object> Ptr<Obj> {
 
-    pub fn from_key(key: u64) -> Self {
+    pub(crate) fn from_key(key: u64) -> Self {
         Self {
             key,
             _marker: PhantomData,
@@ -33,6 +33,10 @@ impl<Obj: Object> Ptr<Obj> {
 
     pub fn null() -> Self {
         Self::from_key(0)
+    }
+
+    pub fn is_null(&self) -> bool {
+        *self == Self::null()
     }
 
 }

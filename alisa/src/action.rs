@@ -1,4 +1,6 @@
 
+use std::cell::RefCell;
+
 use crate::{Client, OperationDyn, Project};
 
 pub(crate) struct Act<P: Project> {
@@ -39,42 +41,42 @@ impl<P: Project> Action<P> {
 }
 
 pub struct UndoRedoManager<P: Project> {
-    undo_stack: Vec<Action<P>>,
-    redo_stack: Vec<Action<P>>
+    undo_stack: RefCell<Vec<Action<P>>>,
+    redo_stack: RefCell<Vec<Action<P>>>
 }
 
 impl<P: Project> UndoRedoManager<P> {
 
     pub fn new() -> Self {
         Self {
-            undo_stack: Vec::new(),
-            redo_stack: Vec::new()
+            undo_stack: RefCell::new(Vec::new()),
+            redo_stack: RefCell::new(Vec::new())
         }
     }
 
-    pub fn add(&mut self, action: Action<P>) {
-        self.undo_stack.push(action);
-        self.redo_stack.clear();
+    pub fn add(&self, action: Action<P>) {
+        self.undo_stack.borrow_mut().push(action);
+        self.redo_stack.borrow_mut().clear();
     }
 
     pub fn can_undo(&self) -> bool {
-        !self.undo_stack.is_empty()
+        !self.undo_stack.borrow().is_empty()
     }
 
     pub fn can_redo(&self) -> bool {
-        !self.redo_stack.is_empty()
+        !self.redo_stack.borrow().is_empty()
     }
 
     pub fn undo(&mut self, client: &Client<P>) {
-        let Some(action) = self.undo_stack.pop() else { return; };
+        let Some(action) = self.undo_stack.borrow_mut().pop() else { return; };
         let redo_action = action.perform(client);
-        self.redo_stack.push(redo_action);
+        self.redo_stack.borrow_mut().push(redo_action);
     }
 
     pub fn redo(&mut self, client: &Client<P>) {
-        let Some(action) = self.redo_stack.pop() else { return; };
+        let Some(action) = self.redo_stack.borrow_mut().pop() else { return; };
         let undo_action = action.perform(client);
-        self.undo_stack.push(undo_action);
+        self.undo_stack.borrow_mut().push(undo_action);
     }
 
 }

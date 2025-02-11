@@ -7,6 +7,7 @@ edition = "2021"
 verter = "0.1.0"
 rmpv = "1.3.0"
 paste = "1.0.15"
+concat_const = "0.1.3"
 alisa-proc-macros = { path = "../alisa-proc-macros" }
 
 [dev-dependencies]

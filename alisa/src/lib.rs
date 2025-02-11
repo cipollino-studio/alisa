@@ -23,6 +23,9 @@ pub(crate) use file::*;
 mod serialization;
 pub use serialization::*;
 
+mod tree;
+pub use tree::*;
+
 mod util;
 pub use util::*;
 

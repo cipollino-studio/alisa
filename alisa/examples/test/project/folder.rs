@@ -2,19 +2,24 @@
 
 use alisa::Object;
 
-use super::{Project, ProjectObjects, SetFoldersDelta};
+use super::{Project, ProjectObjects};
 
 #[derive(Clone, alisa::Serializable)]
 #[project(Project)]
 pub struct Folder {
+    pub parent: alisa::Ptr<Folder>,
     pub name: String,
-    pub myself: alisa::LoadingPtr<Folder>
+    pub folders: alisa::ChildList<Folder>
 }
 
 impl Default for Folder {
 
     fn default() -> Self {
-        Self { name: "Folder".to_owned(), myself: alisa::LoadingPtr::new(alisa::Ptr::null()) }
+        Self {
+            parent: alisa::Ptr::null(),
+            name: "Folder".to_owned(),
+            folders: alisa::ChildList::default()
+        }
     }
 
 }
@@ -35,83 +40,72 @@ impl alisa::Object for Folder {
 
 }
 
-#[derive(alisa::Serializable)]
-#[project(Project)]
-pub struct CreateFolder {
-    pub ptr: alisa::Ptr<Folder>,
-    pub name: String
-}
+impl alisa::TreeObj for Folder {
+    type ParentPtr = alisa::Ptr<Folder>;
+    type ChildList = alisa::ChildList<Folder>;
+    type TreeData = FolderTreeData;
 
-impl Default for CreateFolder {
-
-    fn default() -> Self {
-        Self { ptr: alisa::Ptr::null(), name: "Folder".to_string() }
+    fn child_list<'a>(parent: Self::ParentPtr, project: &'a Project, objects: &'a <Self::Project as alisa::Project>::Objects) -> Option<&'a Self::ChildList> {
+        if parent.is_null() {
+            return Some(&project.folders);
+        }
+        Some(&objects.folders.get(parent)?.folders)
     }
 
-}
-
-#[derive(alisa::Serializable)]
-#[project(Project)]
-pub struct DeleteFolder {
-    pub ptr: alisa::Ptr<Folder>
-}
-
-impl Default for DeleteFolder {
-
-    fn default() -> Self {
-        Self { ptr: alisa::Ptr::null() }
+    fn child_list_mut<'a>(parent: Self::ParentPtr, recorder: &'a mut alisa::ProjectContext<Self::Project>) -> Option<&'a mut Self::ChildList> {
+        if parent.is_null() {
+            return Some(&mut recorder.project_mut().folders);
+        }
+        Some(&mut recorder.obj_list_mut().get_mut(parent)?.folders)
     }
 
-}
+    fn parent(&self) -> Self::ParentPtr {
+        self.parent
+    }
 
-impl alisa::Operation for CreateFolder {
+    fn parent_mut(&mut self) -> &mut Self::ParentPtr {
+        &mut self.parent
+    }
 
-    type Project = Project;
+    fn instance(data: &Self::TreeData, ptr: alisa::Ptr<Self>, parent: Self::ParentPtr, recorder: &mut alisa::Recorder<Self::Project>) {
+        let object = Self {
+            parent: parent,
+            name: data.name.clone(),
+            folders: data.folders.instance(ptr, recorder),
+        };
+        Self::add(recorder, ptr, object);
+    }
 
-    type Inverse = DeleteFolder;
+    fn destroy(&self, recorder: &mut alisa::Recorder<Self::Project>) {
+        self.folders.destroy(recorder);
+    } 
 
-    const NAME: &'static str = "CreateFolder";
-
-    fn perform(&self, recorder: &mut alisa::Recorder<'_, Self::Project>) {
-        recorder.push_delta(SetFoldersDelta {
-            folders: recorder.project().folders.clone() 
-        });
-        recorder.project_mut().folders.push(self.ptr); 
-        Folder::add(recorder, self.ptr, Folder {
+    fn collect_data(&self, objects: &<Self::Project as alisa::Project>::Objects) -> Self::TreeData {
+        FolderTreeData {
             name: self.name.clone(),
-            myself: alisa::LoadingPtr::new(self.ptr),
-        });
+            folders: self.folders.collect_data(objects),
+        }
     }
+    
+}
 
-    fn inverse(&self, _project: &Self::Project, _objects: &ProjectObjects) -> Option<Self::Inverse> {
-        Some(DeleteFolder {
-            ptr: self.ptr,
-        })
+#[derive(alisa::Serializable)]
+#[project(Project)]
+pub struct FolderTreeData {
+    pub name: String,
+    pub folders: alisa::ChildListTreeData<Folder> 
+}
+
+impl Default for FolderTreeData {
+
+    fn default() -> Self {
+        Self {
+            name: "Folder".to_string(),
+            folders: alisa::ChildListTreeData::default() 
+        }
     }
 
 }
 
-impl alisa::Operation for DeleteFolder {
-    type Project = Project;
-
-    type Inverse = CreateFolder;
-
-    const NAME: &'static str = "DeleteFolder";
-
-    fn perform(&self, recorder: &mut alisa::Recorder<'_, Self::Project>) {
-        recorder.push_delta(SetFoldersDelta {
-            folders: recorder.project().folders.clone() 
-        });
-        recorder.project_mut().folders.retain(|other| *other != self.ptr);
-        Folder::delete(recorder, self.ptr);
-    }
-
-    fn inverse(&self, _project: &Self::Project, objects: &ProjectObjects) -> Option<Self::Inverse> {
-        Some(CreateFolder {
-            ptr: self.ptr,
-            name: objects.folders.get(self.ptr).map(|folder| folder.name.clone()).unwrap_or("Folder".to_owned()),
-        })
-    }
-}
-
+alisa::tree_object_operations!(Folder);
 alisa::object_set_property_operation!(Folder, name, String);

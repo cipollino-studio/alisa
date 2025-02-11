@@ -1,5 +1,7 @@
 
-use crate::project::{folder::{CreateFolder, SetFolderName}, DecrN, IncrN, Project, SetN};
+use alisa::{ChildListTreeData, Children};
+
+use crate::project::{folder::{CreateFolder, Folder, FolderTreeData, SetFolderName, TransferFolder}, DecrN, IncrN, Project, SetN};
 
 pub struct Context {
     pub server: alisa::Server<Project>
@@ -10,6 +12,38 @@ pub struct ClientTab {
     pub client: alisa::Client<Project>,
     pub actions: alisa::UndoRedoManager<Project>,
     pub outgoing_msgs: Vec<rmpv::Value> 
+}
+
+impl ClientTab {
+
+    fn render_folder(&self, ui: &mut pierro::UI, folder_ptr: alisa::Ptr<Folder>) {
+        let Some(folder) = self.client.get(folder_ptr) else { return; };
+        let (response, _) = pierro::dnd_source(ui, folder_ptr, |ui| {
+            pierro::collapsing_header(ui, &folder.name, |ui| {
+                if pierro::button(ui, "Rename").mouse_clicked() {
+                    let mut action = alisa::Action::new();
+                    self.client.perform(&mut action, SetFolderName {
+                        ptr: folder_ptr,
+                        name_value: folder.name.clone() + "!",
+                    });
+                    self.actions.add(action);
+                }
+                for subfolder in &folder.folders {
+                    self.render_folder(ui, subfolder);
+                }
+            });
+        });
+        if let Some(moved_folder) = pierro::dnd_receive_payload::<alisa::Ptr<Folder>>(ui, &response) {
+            let mut action = alisa::Action::new();
+            self.client.perform(&mut action, TransferFolder {
+                ptr: moved_folder,
+                new_parent: folder_ptr,
+                new_idx: folder.folders.n_children(),
+            });
+            self.actions.add(action);
+        }
+    }
+
 }
 
 impl pierro::DockingTab for ClientTab {
@@ -46,27 +80,9 @@ impl pierro::DockingTab for ClientTab {
 
         pierro::v_spacing(ui, 10.0);
 
-        pierro::label(ui, format!("Number of folders: {}", self.client.project().folders.len()));
+        pierro::label(ui, format!("Number of folders: {}", self.client.project().folders.n_children()));
         for folder_ptr in &self.client.project().folders {
-            pierro::horizontal_fit_centered(ui, |ui| {
-                if let Some(folder) = self.client.get(*folder_ptr) {
-                    pierro::label(ui, format!("- {} ({:?})", folder.name, folder.myself.ptr()));
-                    pierro::h_spacing(ui, 5.0);
-                    if pierro::button(ui, "Rename").mouse_clicked() {
-                        let mut action = alisa::Action::new();
-                        self.client.perform(&mut action, SetFolderName {
-                            ptr: *folder_ptr,
-                            name_value: folder.name.clone() + "!",
-                        });
-                        self.actions.add(action);
-                    }
-                } else {
-                    pierro::label(ui, format!("- UNLOADED [{:?}]", folder_ptr));
-                    if pierro::button(ui, "Load").mouse_clicked() {
-                        self.client.request_load(*folder_ptr);
-                    }
-                }
-            });
+            self.render_folder(ui, folder_ptr); 
         }
         pierro::horizontal(ui, |ui| { 
             if pierro::icon_button(ui, pierro::icons::PLUS).mouse_clicked() {
@@ -74,7 +90,12 @@ impl pierro::DockingTab for ClientTab {
                     let mut action = alisa::Action::new();
                     self.client.perform(&mut action, CreateFolder {
                         ptr,
-                        name: "Folder".to_owned(),
+                        parent: alisa::Ptr::null(),
+                        idx: self.client.project().folders.n_children(),
+                        data: FolderTreeData {
+                            name: "Folder".to_string(),
+                            folders: ChildListTreeData::default(),
+                        } 
                     });
                     self.actions.add(action);
                 }

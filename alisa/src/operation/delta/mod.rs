@@ -1,6 +1,6 @@
 
 mod common;
-pub(crate) use common::*;
+pub use common::*;
 
 use crate::{ObjList, Object, Project};
 
@@ -66,6 +66,10 @@ impl<'a, P: Project> Recorder<'a, P> {
 
     pub fn push_delta<D: Delta<Project = P> + 'static>(&mut self, delta: D) {
         self.deltas.push(Box::new(delta));
+    }
+
+    pub fn context<'b>(&'b mut self) -> &'b mut ProjectContext<'a, P> {
+        &mut self.context
     }
 
     pub fn project(&self) -> &P {
