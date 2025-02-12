@@ -120,6 +120,7 @@ macro_rules! object_set_property_operation {
                 }
 
                 fn inverse(&self, _project: &Self::Project, objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
+                    use alisa::Object;
                     $object::list(objects).get(self.ptr).map(|obj| Self::Inverse {
                         ptr: self.ptr,
                         [< $property:snake _value >]: obj.$property.clone()

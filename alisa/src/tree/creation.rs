@@ -110,6 +110,7 @@ macro_rules! tree_object_creation_operations {
 
                 fn inverse(&self, project: &Self::Project, objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
                     use ::alisa::Children;
+                    use ::alisa::Object;
                     let object = $object::list(objects).get(self.ptr)?; 
                     let data = <$object as ::alisa::TreeObj>::collect_data(&object, objects);
                     let parent = <$object as ::alisa::TreeObj>::parent(&object);
