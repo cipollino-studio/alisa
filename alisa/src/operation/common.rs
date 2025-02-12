@@ -3,16 +3,16 @@
 #[macro_export]
 macro_rules! project_set_property_delta {
     ($project: ty, $property: ident, $T: ty) => {
-        paste::paste! {
+        ::alisa::paste::paste! {
             pub struct [< Set $property:camel Delta >] {
                 pub $property: $T
             }
 
-            impl alisa::Delta for [< Set $property:camel Delta >] {
+            impl ::alisa::Delta for [< Set $property:camel Delta >] {
 
                 type Project = $project; 
 
-                fn perform(&self, context: &mut alisa::ProjectContext<Self::Project>) {
+                fn perform(&self, context: &mut ::alisa::ProjectContext<Self::Project>) {
                     context.project_mut().$property = self.$property.clone();
                 }
 
@@ -27,22 +27,22 @@ macro_rules! project_set_property_operation {
     ($project: ty, $property: ident, $T: ty) => {
         alisa::project_set_property_delta!($project, $property, $T); 
 
-        paste::paste! {
+        ::alisa::paste::paste! {
 
-            #[derive(alisa::Serializable, Default)]
+            #[derive(::alisa::Serializable, Default)]
             #[project($project)]
             pub struct [< Set $property:camel >] {
                 pub $property: $T
             }
 
-            impl alisa::Operation for [< Set $property:camel >] {
+            impl ::alisa::Operation for [< Set $property:camel >] {
 
                 type Project = $project;
                 type Inverse = Self;
 
                 const NAME: &'static str = stringify!([< SetProject $property:camel >]);
 
-                fn perform(&self, recorder: &mut alisa::Recorder<Self::Project>) {
+                fn perform(&self, recorder: &mut ::alisa::Recorder<Self::Project>) {
                     let old_val = recorder.project().$property.clone();
                     recorder.project_mut().$property = self.$property.clone();
                     recorder.push_delta([<Set $property:camel Delta>] {
@@ -50,7 +50,7 @@ macro_rules! project_set_property_operation {
                     })
                 }
 
-                fn inverse(&self, project: &Self::Project, _objects: &<Self::Project as alisa::Project>::Objects) -> Option<Self::Inverse> {
+                fn inverse(&self, project: &Self::Project, _objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
                     Some(Self {
                         $property: project.$property.clone()
                     })
@@ -65,18 +65,18 @@ macro_rules! project_set_property_operation {
 #[macro_export]
 macro_rules! object_set_property_delta {
     ($object: ty, $property: ident, $T: ty) => {
-        paste::paste! {
+        ::alisa::paste::paste! {
 
             pub struct [< Set $object:camel $property:camel Delta>] {
                 pub ptr: alisa::Ptr<$object>,
                 pub [< $property:snake _value >] : $T // We add _value to the end to make sure the name doesn't conflict with `ptr`
             }
 
-            impl alisa::Delta for [< Set $object:camel $property:camel Delta >] {
+            impl ::alisa::Delta for [< Set $object:camel $property:camel Delta >] {
 
-                type Project = <$object as alisa::Object>::Project; 
+                type Project = <$object as ::alisa::Object>::Project; 
 
-                fn perform(&self, context: &mut alisa::ProjectContext<Self::Project>) {
+                fn perform(&self, context: &mut ::alisa::ProjectContext<Self::Project>) {
                     if let Some(obj) = context.obj_list_mut().get_mut(self.ptr) {
                         obj.$property = self.[< $property:snake _value >].clone();
                     }
@@ -91,7 +91,7 @@ macro_rules! object_set_property_delta {
 #[macro_export]
 macro_rules! object_set_property_operation {
     ($object: ty, $property: ident, $T: ty) => {
-        paste::paste! {
+        ::alisa::paste::paste! {
             ::alisa::object_set_property_delta!($object, $property, $T);    
 
             #[derive(::alisa::Serializable, Default)]

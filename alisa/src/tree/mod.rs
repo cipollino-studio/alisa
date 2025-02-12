@@ -95,9 +95,7 @@ mod transfer;
 #[macro_export]
 macro_rules! tree_object_operations {
     ($object: ty) => {
-        paste::paste! {
-            ::alisa::tree_object_creation_operations!($object);
-            ::alisa::tree_object_transfer_operation!($object);
-        } 
+        ::alisa::tree_object_creation_operations!($object);
+        ::alisa::tree_object_transfer_operation!($object);
     };
 }

@@ -2,7 +2,7 @@
 use crate::{Ptr, Object, Project};
 use super::{Serializable, DeserializationContext, SerializationContext};
 
-macro_rules! number_loadable_impl {
+macro_rules! number_serializable_impl {
     ($T: ty, $N: ty) => {
         paste::paste! {
             impl<P: Project> Serializable<P> for $T {
@@ -20,16 +20,16 @@ macro_rules! number_loadable_impl {
     };
 }
 
-number_loadable_impl!(i8,  i64);
-number_loadable_impl!(i16, i64);
-number_loadable_impl!(i32, i64);
-number_loadable_impl!(i64, i64);
-number_loadable_impl!(isize, i64);
-number_loadable_impl!(u8,  u64);
-number_loadable_impl!(u16, u64);
-number_loadable_impl!(u32, u64);
-number_loadable_impl!(u64, u64);
-number_loadable_impl!(usize, u64);
+number_serializable_impl!(i8,  i64);
+number_serializable_impl!(i16, i64);
+number_serializable_impl!(i32, i64);
+number_serializable_impl!(i64, i64);
+number_serializable_impl!(isize, i64);
+number_serializable_impl!(u8,  u64);
+number_serializable_impl!(u16, u64);
+number_serializable_impl!(u32, u64);
+number_serializable_impl!(u64, u64);
+number_serializable_impl!(usize, u64);
 
 impl<P: Project> Serializable<P> for f32 {
 
@@ -43,7 +43,7 @@ impl<P: Project> Serializable<P> for f32 {
 
 }
 
-number_loadable_impl!(f64, f64);
+number_serializable_impl!(f64, f64);
 
 impl<P: Project> Serializable<P> for String {
 

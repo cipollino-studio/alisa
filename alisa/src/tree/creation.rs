@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! tree_object_creation_operations {
     ($object: ty) => {
-        paste::paste! {
+        ::alisa::paste::paste! {
 
             #[derive(::alisa::Serializable)]
             #[project(<$object as ::alisa::Object>::Project)]

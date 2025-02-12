@@ -31,3 +31,4 @@ pub use util::*;
 
 pub use alisa_proc_macros::*;
 pub use rmpv;
+pub use paste;
