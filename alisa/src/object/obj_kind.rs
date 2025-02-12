@@ -1,5 +1,5 @@
 
-use std::collections::HashSet;
+use std::{any::{type_name, TypeId}, collections::HashSet};
 
 use crate::{DeserializationContext, File, LoadingPtr, Project, Serializable, SerializationContext};
 
@@ -12,7 +12,12 @@ pub struct ObjectKind<P: Project> {
     pub(crate) load_objects: fn(&mut File, &mut P::Objects),
     pub(crate) load_object: fn(&mut File, &mut P::Objects, u64),
     pub(crate) load_object_from_message: fn(&mut P::Objects, u64, &rmpv::Value),
-    pub(crate) serialize_object: fn(&mut P::Objects, u64) -> Option<rmpv::Value> 
+    pub(crate) serialize_object: fn(&mut P::Objects, u64) -> Option<rmpv::Value>,
+
+    #[cfg(debug_assertions)]
+    pub(crate) type_id: fn() -> TypeId,
+    #[cfg(debug_assertions)]
+    pub(crate) type_name: fn() -> &'static str
 }
 
 fn load_object<O: Object>(file: &mut File, objects: &mut <O::Project as Project>::Objects, key: u64) {
@@ -56,7 +61,11 @@ impl<P: Project> ObjectKind<P> {
             },
             serialize_object: |objects, key| {
                 O::list(objects).get(Ptr::from_key(key)).map(|data| data.serialize(&SerializationContext::deep(objects).with_stored(key)))
-            }
+            },
+            #[cfg(debug_assertions)]
+            type_id: || TypeId::of::<O>(),
+            #[cfg(debug_assertions)]
+            type_name: || type_name::<O>()
         }
     }
 

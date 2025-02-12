@@ -7,6 +7,9 @@ use crate::{rmpv_get, Delta, DeserializationContext, OperationDyn, Project, Proj
 
 use super::{Client, ClientKind};
 
+#[cfg(debug_assertions)]
+use super::verify_project_type;
+
 mod keychain;
 
 pub(crate) struct Collab<P: Project> {
@@ -74,6 +77,10 @@ impl<P: Project> Collab<P> {
 impl<P: Project> Client<P> {
 
     pub fn collab(welcome_data: rmpv::Value) -> Option<Self> {
+
+        #[cfg(debug_assertions)]
+        verify_project_type::<P>();
+
         welcome_data.as_map()?;
         let project_data = rmpv_get(&welcome_data, "project")?;
         let mut objects = P::Objects::default();
@@ -205,5 +212,4 @@ impl<P: Project> Client<P> {
         Some(())
     }
    
-
 }

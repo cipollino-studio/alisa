@@ -172,3 +172,26 @@ impl<P: Project> Client<P> {
     }
 
 }
+
+#[cfg(debug_assertions)]
+fn verify_project_type<P: Project>() {
+    for i in 0..P::OPERATIONS.len() {
+        for j in (i + 1)..P::OPERATIONS.len() {
+            let a = &P::OPERATIONS[i];
+            let b = &P::OPERATIONS[j];
+            if a.name == b.name {
+                panic!("duplicate operation name '{}' in {}::OPERATIONS. operations {} and {} have identical names.", a.name, type_name::<P>(), (a.type_name)(), (b.type_name)());
+            }
+        }
+    }
+
+    for i in 0..P::OBJECTS.len() {
+        for j in (i + 1)..P::OBJECTS.len() {
+            let a = &P::OBJECTS[i];
+            let b = &P::OBJECTS[j];
+            if a.name == b.name {
+                panic!("duplicate object name '{}' in {}::OBJECTS. operations {} and {} have identical names.", a.name, type_name::<P>(), (a.type_name)(), (b.type_name)());
+            }
+        }
+    }
+}

@@ -1,5 +1,5 @@
 
-use std::any::{Any, TypeId};
+use std::any::{type_name, Any, TypeId};
 
 use crate::{Serializable, DeserializationContext, Project, SerializationContext};
 
@@ -67,7 +67,9 @@ pub struct OperationKind<P: Project> {
     pub(crate) perform: fn(Box<dyn Any>, &mut Recorder<'_, P>),
 
     #[cfg(debug_assertions)]
-    pub(crate) type_id: fn() -> TypeId
+    pub(crate) type_id: fn() -> TypeId,
+    #[cfg(debug_assertions)]
+    pub(crate) type_name: fn() -> &'static str
 }
 
 impl<P: Project> OperationKind<P> {
@@ -83,7 +85,9 @@ impl<P: Project> OperationKind<P> {
                 operation.perform(recorder);
             },
             #[cfg(debug_assertions)]
-            type_id: || TypeId::of::<O>()
+            type_id: || TypeId::of::<O>(),
+            #[cfg(debug_assertions)]
+            type_name: || type_name::<O>()
         }
     }
 

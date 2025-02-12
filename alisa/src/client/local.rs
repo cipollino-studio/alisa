@@ -5,6 +5,9 @@ use crate::{File, ObjectKind, Project, SerializationContext};
 
 use super::{Client, ClientKind};
 
+#[cfg(debug_assertions)]
+use super::verify_project_type;
+
 pub(crate) struct Local<P: Project> {
     /// The Verter file to which the project is saved
     file: File,
@@ -86,6 +89,9 @@ impl<P: Project> Client<P> {
 
     pub fn local<PathRef: AsRef<Path>>(path: PathRef) -> Option<Self> {
 
+        #[cfg(debug_assertions)]
+        verify_project_type::<P>();
+        
         let (file, project, objects, curr_key) = File::open(path)?;
 
         Some(Self {

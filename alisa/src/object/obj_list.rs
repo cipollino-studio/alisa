@@ -1,4 +1,6 @@
-use std::{cell::RefCell, collections::{HashMap, HashSet}};
+use std::{any::{type_name, TypeId}, cell::RefCell, collections::{HashMap, HashSet}};
+
+use crate::Project;
 
 use super::{Ptr, Object};
 
@@ -42,6 +44,14 @@ impl<Obj: Object> ObjList<Obj> {
 impl<O: Object> Default for ObjList<O> {
 
     fn default() -> Self {
+
+        #[cfg(debug_assertions)]
+        {
+            if <O::Project as Project>::OBJECTS.iter().find(|object_kind| (object_kind.type_id)() == TypeId::of::<O>()).is_none() {
+                panic!("object '{}' not registered in {}::OBJECTS.", O::NAME, type_name::<O::Project>());
+            }
+        }
+
         Self {
             objs: HashMap::new(),
             modified: HashSet::new(),
