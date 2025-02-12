@@ -4,6 +4,7 @@ use crate::{Delta, Object, Project, ProjectContext, Ptr, Recorder, Serializable}
 mod child_list;
 pub use child_list::*;
 
+/// A list of references to the children of a tree object
 pub trait Children<O: Object> {
 
     fn n_children(&self) -> usize;
@@ -60,225 +61,43 @@ impl<O: TreeObj> Delta for SetParentDelta<O> {
     }
 }
 
+/// An object that is part of a tree of objects. 
 pub trait TreeObj: Object {
 
+    /// The type of pointer that points to the parent object 
     type ParentPtr: Default + Clone;
+    /// The list of children the parent has that points to this tree object
     type ChildList: Children<Self>;
+    /// The information needed to recreate this object and all of its children in the tree
     type TreeData: Serializable<Self::Project>;
 
+    /// Get the list of children that points to this object given the parent pointer
     fn child_list<'a>(parent: Self::ParentPtr, project: &'a Self::Project, objects: &'a <Self::Project as Project>::Objects) -> Option<&'a Self::ChildList>;
+    /// Get a mutable reference to the list of children that points to this object given the parent pointer
     fn child_list_mut<'a>(parent: Self::ParentPtr, context: &'a mut ProjectContext<Self::Project>) -> Option<&'a mut Self::ChildList>;
+    /// Get the parent
     fn parent(&self) -> Self::ParentPtr;
+    /// Get a mutable reference to the parent
     fn parent_mut(&mut self) -> &mut Self::ParentPtr;
 
+    /// Create this object and all its children from the tree data
     fn instance(data: &Self::TreeData, ptr: Ptr<Self>, parent: Self::ParentPtr, recorder: &mut Recorder<Self::Project>); 
+    /// Delete this object and all its children
     fn destroy(&self, recorder: &mut Recorder<Self::Project>);
+    /// Get the tree data for this object and its children
     fn collect_data(&self, objects: &<Self::Project as Project>::Objects) -> Self::TreeData;
 
 }
+
+mod creation;
+mod transfer;
 
 #[macro_export]
 macro_rules! tree_object_operations {
     ($object: ty) => {
         paste::paste! {
-
-            #[derive(::alisa::Serializable)]
-            #[project(<$object as ::alisa::Object>::Project)]
-            pub struct [< Create $object:camel >] {
-                pub ptr: ::alisa::Ptr<$object>,
-                pub parent: <$object as ::alisa::TreeObj>::ParentPtr,
-                pub idx: usize,
-                pub data: <$object as ::alisa::TreeObj>::TreeData
-            }
-
-            impl Default for [< Create $object:camel >] {
-
-                fn default() -> Self {
-                    Self {
-                        ptr: ::alisa::Ptr::null(),
-                        parent: Default::default(),
-                        idx: 0,
-                        data: <<$object as ::alisa::TreeObj>::TreeData as Default>::default()
-                    }
-                }
-
-            }
-
-            impl ::alisa::Operation for [< Create $object:camel >] {
-
-                type Project = <$object as ::alisa::Object>::Project;
-                type Inverse = [< Delete $object:camel >];
-
-                const NAME: &'static str = stringify!([< Create $object:camel >]);
-
-                fn perform(&self, recorder: &mut ::alisa::Recorder<Self::Project>) {
-                    use ::alisa::Children;
-                    <$object as ::alisa::TreeObj>::instance(&self.data, self.ptr, self.parent, recorder);
-                    if let Some(child_list) = <$object as ::alisa::TreeObj>::child_list_mut(self.parent, recorder.context()) {
-                        child_list.insert(self.idx, self.ptr);
-                        recorder.push_delta(::alisa::RemoveChildDelta {
-                            parent: self.parent.clone(),
-                            ptr: self.ptr
-                        });
-                    }
-                }
-
-                fn inverse(&self, _project: &Self::Project, objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
-                    Some([<Delete $object:camel >] {
-                        ptr: self.ptr
-                    })
-                }
-
-            }
-
-            #[derive(::alisa::Serializable)]
-            #[project(<$object as ::alisa::Object>::Project)]
-            pub struct [< Delete $object:camel >] {
-                pub ptr: ::alisa::Ptr<$object>
-            }
-
-            impl Default for [< Delete $object:camel >] {
-
-                fn default() -> Self {
-                    Self {
-                        ptr: ::alisa::Ptr::null()
-                    }
-                }
-
-            } 
-
-            impl ::alisa::Operation for [< Delete $object:camel >] {
-
-                type Project = <$object as ::alisa::Object>::Project;
-                type Inverse = [< Create $object:camel >];
-
-                const NAME: &'static str = stringify!([< Delete $object:camel >]);
-
-                fn perform(&self, recorder: &mut ::alisa::Recorder<Self::Project>) {
-                    use ::alisa::Children;
-                    use ::alisa::TreeObj;
-                    if let Some(obj) = recorder.obj_list_mut().delete(self.ptr) {
-                        obj.destroy(recorder);
-                        let parent = obj.parent(); 
-                        recorder.push_delta(::alisa::RecreateObjectDelta {
-                            ptr: self.ptr,
-                            obj
-                        });
-                        if let Some(child_list) = $object::child_list_mut(parent.clone(), recorder.context()) {
-                            if let Some(idx) = child_list.remove(self.ptr) {
-                                recorder.push_delta(::alisa::InsertChildDelta {
-                                    parent,
-                                    ptr: self.ptr,
-                                    idx
-                                });
-                            }
-                        }
-                    }
-                }
-
-                fn inverse(&self, project: &Self::Project, objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
-                    use ::alisa::Children;
-                    let object = $object::list(objects).get(self.ptr)?; 
-                    let data = <$object as ::alisa::TreeObj>::collect_data(&object, objects);
-                    let parent = <$object as ::alisa::TreeObj>::parent(&object);
-                    let child_list = <$object as ::alisa::TreeObj>::child_list(parent, project, objects)?;
-                    let idx = child_list.index_of(self.ptr)?;
-                    Some([< Create $object:camel >] {
-                        ptr: self.ptr,
-                        idx,
-                        parent,
-                        data
-                    })
-                }
-
-            }
-
-            #[derive(::alisa::Serializable)]
-            #[project(<$object as ::alisa::Object>::Project)]
-            pub struct [< Transfer $object >] {
-                pub ptr: ::alisa::Ptr<$object>,
-                pub new_parent: <$object as ::alisa::TreeObj>::ParentPtr,
-                pub new_idx: usize
-            }
-
-            impl Default for [< Transfer $object >] {
-
-                fn default() -> Self {
-                    Self {
-                        ptr: ::alisa::Ptr::null(),
-                        new_parent: Default::default(),
-                        new_idx: 0
-                    }
-                }
-
-            }
-
-            impl ::alisa::Operation for [< Transfer $object >] {
-
-                type Project = <$object as ::alisa::Object>::Project;
-                type Inverse = [< Transfer $object:camel >];
-
-                const NAME: &'static str = stringify!([< Transfer $object:camel >]);
-
-                fn perform(&self, recorder: &mut ::alisa::Recorder<Self::Project>) {
-                    use ::alisa::TreeObj;
-                    use ::alisa::Children;
-
-                    // Make sure everything we need exists
-                    let Some(obj) = recorder.obj_list_mut().get_mut(self.ptr) else { return; };
-                    let old_parent = obj.parent().clone();
-                    if $object::child_list_mut(old_parent.clone(), recorder.context()).is_none() {
-                        return;
-                    }
-                    if $object::child_list_mut(self.new_parent.clone(), recorder.context()).is_none() {
-                        return;
-                    }
-
-                    // Set the object's parent
-                    let Some(obj) = recorder.obj_list_mut().get_mut(self.ptr) else { return; };
-                    *obj.parent_mut() = self.new_parent.clone();
-                    recorder.push_delta(::alisa::SetParentDelta {
-                        ptr: self.ptr,
-                        new_parent: old_parent.clone()
-                    });
-                    
-                    // Remove the object from the old parent's child list
-                    if let Some(old_child_list) = $object::child_list_mut(old_parent.clone(), recorder.context()) {
-                        if let Some(idx) = old_child_list.remove(self.ptr) {
-                            recorder.push_delta(::alisa::InsertChildDelta {
-                                parent: old_parent,
-                                ptr: self.ptr,
-                                idx
-                            });
-                        }
-                    }
-
-                    // Add the object to the new parent's child list
-                    if let Some(new_child_list) = $object::child_list_mut(self.new_parent.clone(), recorder.context()) {
-                        new_child_list.insert(self.new_idx, self.ptr);
-                        recorder.push_delta(::alisa::RemoveChildDelta {
-                            parent: self.new_parent.clone(),
-                            ptr: self.ptr
-                        });
-                    }
-                }
-
-                fn inverse(&self, project: &Self::Project, objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
-                    use ::alisa::TreeObj;
-                    use ::alisa::Children;
-                    let object = $object::list(objects).get(self.ptr)?; 
-                    let parent = object.parent();
-                    let child_list = $object::child_list(parent, project, objects)?; 
-                    let idx = child_list.index_of(self.ptr)?;
-                    Some(Self {
-                        ptr: self.ptr,
-                        new_parent: parent,
-                        new_idx: idx
-                    })
-                }
-
-            }
-
+            ::alisa::tree_object_creation_operations!($object);
+            ::alisa::tree_object_transfer_operation!($object);
         } 
     };
 }
