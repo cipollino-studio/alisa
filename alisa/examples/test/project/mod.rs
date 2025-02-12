@@ -1,5 +1,4 @@
 
-use alisa::ChildList;
 use folder::{CreateFolder, DeleteFolder, Folder, SetFolderName, TransferFolder};
 
 pub mod folder;
@@ -13,14 +12,14 @@ pub struct ProjectObjects {
 #[project(Project)]
 pub struct Project {
     pub n: i32,
-    pub folders: ChildList<Folder> 
+    pub folders: alisa::UnorderedChildList<Folder> 
 }
 
 impl Default for Project {
     fn default() -> Self {
         Self {
             n: 0,
-            folders: ChildList::default() 
+            folders: alisa::UnorderedChildList::default() 
         }
     }
 }
@@ -32,7 +31,7 @@ impl alisa::Project for Project {
     fn empty() -> Self {
         Self {
             n: 0,
-            folders: ChildList::default() 
+            folders: alisa::UnorderedChildList::default() 
         }
     }
 

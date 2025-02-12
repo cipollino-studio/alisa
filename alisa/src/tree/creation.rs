@@ -9,7 +9,7 @@ macro_rules! tree_object_creation_operations {
             pub struct [< Create $object:camel >] {
                 pub ptr: ::alisa::Ptr<$object>,
                 pub parent: <$object as ::alisa::TreeObj>::ParentPtr,
-                pub idx: usize,
+                pub idx: <<$object as ::alisa::TreeObj>::ChildList as ::alisa::Children<$object>>::Index,
                 pub data: <$object as ::alisa::TreeObj>::TreeData
             }
 
@@ -19,7 +19,7 @@ macro_rules! tree_object_creation_operations {
                     Self {
                         ptr: ::alisa::Ptr::null(),
                         parent: Default::default(),
-                        idx: 0,
+                        idx: Default::default(),
                         data: <<$object as ::alisa::TreeObj>::TreeData as Default>::default()
                     }
                 }

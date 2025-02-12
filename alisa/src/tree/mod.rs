@@ -4,13 +4,18 @@ use crate::{Delta, Object, Project, ProjectContext, Ptr, Recorder, Serializable}
 mod child_list;
 pub use child_list::*;
 
+mod unordered_child_list;
+pub use unordered_child_list::*;
+
 /// A list of references to the children of a tree object
 pub trait Children<O: Object> {
 
+    type Index: Copy + Serializable<O::Project> + Default;
+
     fn n_children(&self) -> usize;
-    fn insert(&mut self, idx: usize, child: Ptr<O>);
-    fn remove(&mut self, child: Ptr<O>) -> Option<usize>;
-    fn index_of(&self, child: Ptr<O>) -> Option<usize>;
+    fn insert(&mut self, idx: Self::Index, child: Ptr<O>);
+    fn remove(&mut self, child: Ptr<O>) -> Option<Self::Index>;
+    fn index_of(&self, child: Ptr<O>) -> Option<Self::Index>;
 
 }
 
@@ -33,7 +38,7 @@ impl<O: TreeObj> Delta for RemoveChildDelta<O> {
 pub struct InsertChildDelta<O: TreeObj> {
     pub parent: O::ParentPtr,
     pub ptr: Ptr<O>,
-    pub idx: usize
+    pub idx: <O::ChildList as Children<O>>::Index 
 }
 
 impl<O: TreeObj> Delta for InsertChildDelta<O> {

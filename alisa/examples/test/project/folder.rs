@@ -9,7 +9,7 @@ use super::{Project, ProjectObjects};
 pub struct Folder {
     pub parent: alisa::Ptr<Folder>,
     pub name: String,
-    pub folders: alisa::ChildList<Folder>
+    pub folders: alisa::UnorderedChildList<Folder>
 }
 
 impl Default for Folder {
@@ -18,7 +18,7 @@ impl Default for Folder {
         Self {
             parent: alisa::Ptr::null(),
             name: "Folder".to_owned(),
-            folders: alisa::ChildList::default()
+            folders: alisa::UnorderedChildList::default()
         }
     }
 
@@ -42,7 +42,7 @@ impl alisa::Object for Folder {
 
 impl alisa::TreeObj for Folder {
     type ParentPtr = alisa::Ptr<Folder>;
-    type ChildList = alisa::ChildList<Folder>;
+    type ChildList = alisa::UnorderedChildList<Folder>;
     type TreeData = FolderTreeData;
 
     fn child_list<'a>(parent: Self::ParentPtr, project: &'a Project, objects: &'a <Self::Project as alisa::Project>::Objects) -> Option<&'a Self::ChildList> {
@@ -93,7 +93,7 @@ impl alisa::TreeObj for Folder {
 #[project(Project)]
 pub struct FolderTreeData {
     pub name: String,
-    pub folders: alisa::ChildListTreeData<Folder> 
+    pub folders: alisa::UnorderedChildListTreeData<Folder> 
 }
 
 impl Default for FolderTreeData {
@@ -101,7 +101,7 @@ impl Default for FolderTreeData {
     fn default() -> Self {
         Self {
             name: "Folder".to_string(),
-            folders: alisa::ChildListTreeData::default() 
+            folders: alisa::UnorderedChildListTreeData::default() 
         }
     }
 

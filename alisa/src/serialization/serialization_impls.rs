@@ -1,4 +1,6 @@
 
+use std::{collections::HashSet, hash::Hash};
+
 use crate::{Ptr, Object, Project};
 use super::{Serializable, DeserializationContext, SerializationContext};
 
@@ -66,6 +68,31 @@ impl<P: Project, T: Serializable<P>> Serializable<P> for Vec<T> {
 
     fn serialize(&self, context: &SerializationContext<P>) -> rmpv::Value {
         rmpv::Value::Array(self.iter().map(|val| val.serialize(context)).collect())
+    }
+
+}
+
+impl<P: Project, T: Serializable<P> + Eq + Hash> Serializable<P> for HashSet<T> {
+
+    fn deserialize(data: &rmpv::Value, context: &mut DeserializationContext<P>) -> Option<Self> {
+        let Some(arr) = data.as_array() else { return Some(HashSet::new()); };
+        Some(arr.iter().filter_map(|element| T::deserialize(element, context)).collect())
+    }
+
+    fn serialize(&self, context: &SerializationContext<P>) -> rmpv::Value {
+        rmpv::Value::Array(self.iter().map(|val| val.serialize(context)).collect())
+    }
+
+}
+
+impl<P: Project> Serializable<P> for () {
+
+    fn serialize(&self, _context: &SerializationContext<P>) -> rmpv::Value {
+        rmpv::Value::Nil
+    }
+
+    fn deserialize(_data: &rmpv::Value, _context: &mut DeserializationContext<P>) -> Option<Self> {
+        Some(())
     }
 
 }

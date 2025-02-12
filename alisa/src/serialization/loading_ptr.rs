@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use crate::{Object, Ptr};
 
 use super::{DeserializationContext, DeserializationContextKind, Serializable, SerializationContext, SerializationContextKind};
@@ -6,7 +8,6 @@ const ALREADY_ENCODED_MSGPACK_EXT_CODE: i8 = 123;
 const ALREADY_ENCODED_MSGPACK_EXT_DATA: &'static [u8] = b"ENCODED";
 
 /// A reference to an object that indicates that the object refered to should be loaded from disk/the server when the referer is loaded. 
-#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct LoadingPtr<O: Object> {
     ptr: Ptr<O>
 }
@@ -110,6 +111,36 @@ impl<O: Object> Serializable<O::Project> for LoadingPtr<O> {
                 ])
             }
         }
+    }
+
+}
+
+impl<O: Object> Clone for LoadingPtr<O> {
+
+    fn clone(&self) -> Self {
+        Self {
+            ptr: self.ptr
+        }
+    }
+
+}
+
+impl<O: Object> Copy for LoadingPtr<O> {}
+
+impl<O: Object> PartialEq for LoadingPtr<O> {
+
+    fn eq(&self, other: &Self) -> bool {
+        self.ptr == other.ptr
+    }
+
+}
+
+impl<O: Object> Eq for LoadingPtr<O> {}
+
+impl<O: Object> Hash for LoadingPtr<O> {
+
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.ptr.hash(state);
     }
 
 }

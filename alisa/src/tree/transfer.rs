@@ -9,7 +9,7 @@ macro_rules! tree_object_transfer_operation {
             pub struct [< Transfer $object >] {
                 pub ptr: ::alisa::Ptr<$object>,
                 pub new_parent: <$object as ::alisa::TreeObj>::ParentPtr,
-                pub new_idx: usize
+                pub new_idx: <<$object as ::alisa::TreeObj>::ChildList as ::alisa::Children<$object>>::Index
             }
 
             impl Default for [< Transfer $object >] {
@@ -18,7 +18,7 @@ macro_rules! tree_object_transfer_operation {
                     Self {
                         ptr: ::alisa::Ptr::null(),
                         new_parent: Default::default(),
-                        new_idx: 0
+                        new_idx: Default::default() 
                     }
                 }
 

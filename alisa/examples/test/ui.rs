@@ -1,5 +1,5 @@
 
-use alisa::{ChildListTreeData, Children};
+use alisa::Children;
 
 use crate::project::{folder::{CreateFolder, Folder, FolderTreeData, SetFolderName, TransferFolder}, DecrN, IncrN, Project, SetN};
 
@@ -28,7 +28,7 @@ impl ClientTab {
                     });
                     self.actions.add(action);
                 }
-                for subfolder in &folder.folders {
+                for subfolder in folder.folders.iter() {
                     self.render_folder(ui, subfolder);
                 }
             });
@@ -38,7 +38,7 @@ impl ClientTab {
             self.client.perform(&mut action, TransferFolder {
                 ptr: moved_folder,
                 new_parent: folder_ptr,
-                new_idx: folder.folders.n_children(),
+                new_idx: (),
             });
             self.actions.add(action);
         }
@@ -81,7 +81,7 @@ impl pierro::DockingTab for ClientTab {
         pierro::v_spacing(ui, 10.0);
 
         pierro::label(ui, format!("Number of folders: {}", self.client.project().folders.n_children()));
-        for folder_ptr in &self.client.project().folders {
+        for folder_ptr in self.client.project().folders.iter() {
             self.render_folder(ui, folder_ptr); 
         }
         pierro::horizontal(ui, |ui| { 
@@ -91,10 +91,10 @@ impl pierro::DockingTab for ClientTab {
                     self.client.perform(&mut action, CreateFolder {
                         ptr,
                         parent: alisa::Ptr::null(),
-                        idx: self.client.project().folders.n_children(),
+                        idx: (),
                         data: FolderTreeData {
                             name: "Folder".to_string(),
-                            folders: ChildListTreeData::default(),
+                            folders: alisa::UnorderedChildListTreeData::default(),
                         } 
                     });
                     self.actions.add(action);
