@@ -2,7 +2,7 @@
 mod common;
 pub use common::*;
 
-use crate::{ObjList, Object, Project, ProjectContextMut};
+use crate::{ObjList, Object, Project, ProjectContext, ProjectContextMut};
 
 /// A tiny change to the project. Used for moving backwards in time for the collaboration conflict resolution system. 
 pub trait Delta {
@@ -28,6 +28,13 @@ impl<'a, P: Project> Recorder<'a, P> {
 
     pub fn push_delta<D: Delta<Project = P> + 'static>(&mut self, delta: D) {
         self.deltas.push(Box::new(delta));
+    }
+
+    pub fn context(&'a self) -> ProjectContext<'a, P> {
+        ProjectContext {
+            project: &self.context.project,
+            objects: &self.context.objects,
+        }
     }
 
     pub fn context_mut<'b>(&'b mut self) -> &'b mut ProjectContextMut<'a, P> {
