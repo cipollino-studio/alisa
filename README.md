@@ -386,7 +386,7 @@ fn main() {
 
     // To create a new object, we need to allocate a unique Ptr<> for it.
     // We can do so with client.next_ptr(). 
-    // Note that under certain conditions, a collab client might occasionally be unable to immediately allocate a,
+    // Note that under certain conditions, a collab client might occasionally be unable to immediately allocate a Ptr<>,
     // so next_ptr() returns an Option<Ptr<>>. 
     if let Some(ptr) = client.next_ptr() {
         client.perform(&mut action, CreateSlide {
@@ -434,7 +434,7 @@ fn main() {
 }
 ```
 
-To demonstrate how to fully use the `TreeObj` system, let's also implement `TextBox`s. In the tree, `TextBox`s would be owned by `Slide`s. First the struct definition and the `Object` implementation:
+To demonstrate how to fully use the `TreeObj` system, let's also implement `TextBox`s. In the tree, `TextBox`s would be owned by `Slide`s. First, the struct definition and the `Object` implementation:
 
 ```rust
 #[derive(alisa::Serializable, Clone)]
