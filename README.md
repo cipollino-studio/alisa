@@ -1,7 +1,21 @@
 
-# Alisa 
+# Alisa
 
-**Alisa** is a framework for building apps with real-time collaboration. Alisa handles many essential backend-y components of many apps, including:
+**Alisa** is a framework for building apps with real-time collaboration.
+
+* [Features](#features) 
+* [Key Concepts](#key-concepts)
+    * [Project](#1-project)
+    * [Operations](#2-operations)
+    * [Client](#3-the-client)
+    * [Actions](#4-actions-and-undoredo)
+    * [Objects](#5-objects)
+    * [Tree Objects](#6-tree-objects)
+* [Namesake](#namesake)
+
+### Features
+
+Alisa handles many essential backend-y components of many apps, including:
 
 * A real-time collaboration system with robust conflict resolution
 * Serialization, with lazy-loading and incremental file updates
@@ -15,6 +29,8 @@ Alisa does not handle:
 ### Key Concepts
 
 Alisa is very general and powerful framework. To use it effectively, there are several key concepts that you need to understand. To help clarify these concepts, let's walk through how we'd use Alisa to set up a Google Slides clone called Poodle Slips.
+
+The final code for this example is available for reference in `alisa/examples/slides.rs`.
 
 #### 1. Project
 
@@ -97,7 +113,7 @@ impl alisa::Project for SlipsProject {
 
 If an operation is not registered, it will not work properly with real-time collaboration. When compiling with debug assertions enabled, failing to register an operation will cause Alisa to panic.
 
-#### 4. The Client
+#### 3. The Client
 
 Now that we have our operation, let's see how we can apply it to our project. To load or modify a project, you need to initialize a `Client`. There are two types of clients: local clients, which stores/loads data to a file, and collab clients, which load data from a server and support real-time collaboration. Other than how they're initialized and how you handle sending messages to the server, local and collab clients work in the exactly the same way, so you can easily create both a traditional, desktop, non-collaborative and a browser-based collaborative version of your app. 
 
@@ -418,7 +434,204 @@ fn main() {
 }
 ```
 
-TODO: Explain how we can give Slide its own children
+To demonstrate how to fully use the `TreeObj` system, let's also implement `TextBox`s. In the tree, `TextBox`s would be owned by `Slide`s. First the struct definition and the `Object` implementation:
+
+```rust
+#[derive(alisa::Serializable, Clone)]
+#[project(SlipsProject)]
+struct TextBox {
+    slide: alisa::Ptr<Slide>,
+    x: f32,
+    y: f32,
+    content: String
+}
+
+impl Default for TextBox {
+
+    fn default() -> Self {
+        Self {
+            slide: alisa::Ptr::null(),
+            x: 0.0,
+            y: 0.0,
+            content: String::new() 
+        }
+    }
+
+}
+
+impl alisa::Object for TextBox {
+
+    type Project = SlipsProject;
+
+    const NAME: &'static str = "TextBox";
+
+    fn list(objects: &SlipsObjects) -> &alisa::ObjList<TextBox> {
+        &objects.text_boxes
+    }
+
+    fn list_mut(objects: &mut SlipsObjects) -> &mut alisa::ObjList<TextBox> {
+        &mut objects.text_boxes
+    }
+
+}
+```
+
+Nothing new here. Now, the `TreeObj` implementation:
+
+```rust
+#[derive(alisa::Serializable)]
+#[project(SlipsProject)]
+pub struct TextBoxTreeData {
+    x: f32,
+    y: f32,
+    content: String
+}
+
+impl Default for TextBoxTreeData {
+
+    fn default() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            content: String::new() 
+        }
+    }
+
+}
+
+impl alisa::TreeObj for TextBox {
+
+    type ParentPtr = alisa::Ptr<Slide>;
+    // Let's say we don't care about ordering TextBoxes in a slide, so we can use alisa::UnorderedChildList
+    type ChildList = alisa::UnorderedChildList<TextBox>;
+    type TreeData = TextBoxTreeData;
+
+    fn child_list<'a>(parent: alisa::Ptr<Slide>, project: &'a SlipsProject, objects: &'a SlipsObjects) -> Option<&'a alisa::UnorderedChildList<TextBox>> {
+        objects.slides.get(parent).map(|slide| &slide.text_boxes)
+    }
+
+    fn child_list_mut<'a>(parent: alisa::Ptr<Slide>, context: &'a mut alisa::ProjectContext<SlipsProject>) -> Option<&'a mut alisa::UnorderedChildList<TextBox>> {
+        context.obj_list_mut().get_mut(parent).map(|slide| &mut slide.text_boxes)
+    }
+
+    fn parent(&self) -> alisa::Ptr<Slide> {
+        self.slide
+    }
+
+    fn parent_mut(&mut self) -> &mut alisa::Ptr<Slide> {
+        &mut self.slide
+    }
+
+    fn instance(data: &TextBoxTreeData, ptr: alisa::Ptr<TextBox>, parent: alisa::Ptr<Slide>, recorder: &mut alisa::Recorder<SlipsProject>) {
+        use alisa::Object;
+        let text_box = TextBox {
+            slide: parent,
+            x: data.x,
+            y: data.y,
+            content: data.content.clone(),
+        };
+        Self::add(recorder, ptr, text_box);
+    }
+
+    fn destroy(&self, recorder: &mut alisa::Recorder<SlipsProject>) {
+
+    }
+
+    fn collect_data(&self, objects: &SlipsObjects) -> TextBoxTreeData {
+        TextBoxTreeData {
+            x: self.x,
+            y: self.y,
+            content: self.content.clone(),
+        }
+    }
+}
+```
+
+Again, this is basically the same thing as we had for `Slide`'s `TreeObj` implementation. But now, let's see how we had to change `Slide` to accomodate having child `TextBox`s:
+
+```rust
+#[derive(alisa::Serializable, Clone)]
+#[project(SlipsProject)]
+pub struct Slide {
+    parent: (),
+    title: String,
+    // The text boxes inside this slide
+    text_boxes: alisa::UnorderedChildList<TextBox>
+}
+
+...
+
+#[derive(alisa::Serializable)]
+#[project(SlipsProject)]
+pub struct SlideTreeData {
+    title: String,
+    // We need to store the data of the Slide's children to recreate it 
+    text_boxes: alisa::UnorderedChildListTreeData<TextBox>
+}
+
+impl Default for SlideTreeData {
+
+    fn default() -> Self {
+        Self {
+            title: "Slide".to_owned(),
+            text_boxes: alisa::UnorderedChildListTreeData::default()
+        }
+    }
+
+}
+
+impl alisa::TreeObj for Slide {
+
+    type ParentPtr = ();
+    type ChildList = alisa::ChildList<Slide>;
+    type TreeData = SlideTreeData;
+
+    fn child_list<'a>(parent: (), project: &'a SlipsProject, objects: &'a SlipsObjects) -> Option<&'a alisa::ChildList<Slide>> {
+        Some(&project.slides)
+    }
+
+    fn child_list_mut<'a>(parent: Self::ParentPtr, context: &'a mut alisa::ProjectContext<Self::Project>) -> Option<&'a mut Self::ChildList> {
+        Some(&mut context.project_mut().slides)
+    }
+
+    fn parent(&self) -> () {
+        self.parent
+    }
+
+    fn parent_mut(&mut self) -> &mut () {
+        &mut self.parent
+    }
+
+    fn instance(data: &SlideTreeData, ptr: alisa::Ptr<Slide>, parent: (), recorder: &mut alisa::Recorder<SlipsProject>) {
+        use alisa::Object;
+        let slide = Slide {
+            parent,
+            title: data.title.clone(),
+            // Instance the child TextBoxes from their data
+            text_boxes: data.text_boxes.instance(ptr, recorder)
+        };
+        Self::add(recorder, ptr, slide);
+    }
+
+    fn destroy(&self, recorder: &mut alisa::Recorder<SlipsProject>) {
+        // When deleting a slide, we need to delete its children too
+        self.text_boxes.destroy(recorder); 
+    }
+
+    fn collect_data(&self, objects: &<Self::Project as alisa::Project>::Objects) -> Self::TreeData {
+        SlideTreeData {
+            title: self.title.clone(),
+            // Collect the data of the children here 
+            text_boxes: self.text_boxes.collect_data(objects)
+        }
+    }
+
+}
+```
+
+And just like that, we have a three-tier object hierarchy: a `SlipsProject` can contain many `Slides`, each of which can contain many `TextBox`s.
+
+The object tree system is built to be as flexible as possible. You can implement your own child containers to replace `ChildList` and `UnorderedChildList`, you can use a type other than `Ptr<>` for the `ParentPtr`(for example, if an object can be the child of two different kinds of objects), and much, much more.
 
 ### Namesake
 
