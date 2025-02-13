@@ -1,4 +1,6 @@
 
+### Moved to Cipollino monorepo: https://github.com/cipollino-studio/cipollino-studio
+
 # Alisa
 
 **Alisa** is a framework for building apps with real-time collaboration.
