@@ -1,4 +1,7 @@
 
+mod project_context;
+pub use project_context::*;
+
 use crate::{Serializable, ObjectKind, OperationKind};
 
 pub trait Project: Sized + Serializable<Self> + 'static {

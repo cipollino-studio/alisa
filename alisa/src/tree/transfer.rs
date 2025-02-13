@@ -38,10 +38,10 @@ macro_rules! tree_object_transfer_operation {
                     // Make sure everything we need exists
                     let Some(obj) = recorder.obj_list_mut().get_mut(self.ptr) else { return; };
                     let old_parent = obj.parent().clone();
-                    if $object::child_list_mut(old_parent.clone(), recorder.context()).is_none() {
+                    if $object::child_list_mut(old_parent.clone(), recorder.context_mut()).is_none() {
                         return;
                     }
-                    if $object::child_list_mut(self.new_parent.clone(), recorder.context()).is_none() {
+                    if $object::child_list_mut(self.new_parent.clone(), recorder.context_mut()).is_none() {
                         return;
                     }
 
@@ -54,7 +54,7 @@ macro_rules! tree_object_transfer_operation {
                     });
                     
                     // Remove the object from the old parent's child list
-                    if let Some(old_child_list) = $object::child_list_mut(old_parent.clone(), recorder.context()) {
+                    if let Some(old_child_list) = $object::child_list_mut(old_parent.clone(), recorder.context_mut()) {
                         if let Some(idx) = old_child_list.remove(self.ptr) {
                             recorder.push_delta(::alisa::InsertChildDelta {
                                 parent: old_parent,
@@ -65,7 +65,7 @@ macro_rules! tree_object_transfer_operation {
                     }
 
                     // Add the object to the new parent's child list
-                    if let Some(new_child_list) = $object::child_list_mut(self.new_parent.clone(), recorder.context()) {
+                    if let Some(new_child_list) = $object::child_list_mut(self.new_parent.clone(), recorder.context_mut()) {
                         new_child_list.insert(self.new_idx, self.ptr);
                         recorder.push_delta(::alisa::RemoveChildDelta {
                             parent: self.new_parent.clone(),
@@ -74,12 +74,12 @@ macro_rules! tree_object_transfer_operation {
                     }
                 }
 
-                fn inverse(&self, project: &Self::Project, objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
+                fn inverse(&self, context: &::alisa::ProjectContext<Self::Project>) -> Option<Self::Inverse> {
                     use ::alisa::TreeObj;
                     use ::alisa::Children;
-                    let object = $object::list(objects).get(self.ptr)?; 
+                    let object = context.obj_list().get(self.ptr)?; 
                     let parent = object.parent();
-                    let child_list = $object::child_list(parent, project, objects)?; 
+                    let child_list = $object::child_list(parent, context)?; 
                     let idx = child_list.index_of(self.ptr)?;
                     Some(Self {
                         ptr: self.ptr,

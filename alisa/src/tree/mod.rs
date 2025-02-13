@@ -1,5 +1,5 @@
 
-use crate::{Delta, Object, Project, ProjectContext, Ptr, Recorder, Serializable};
+use crate::{Delta, Object, Project, ProjectContext, ProjectContextMut, Ptr, Recorder, Serializable};
 
 mod child_list;
 pub use child_list::*;
@@ -27,7 +27,7 @@ pub struct RemoveChildDelta<O: TreeObj> {
 impl<O: TreeObj> Delta for RemoveChildDelta<O> {
     type Project = O::Project;
 
-    fn perform(&self, context: &mut crate::ProjectContext<'_, Self::Project>) {
+    fn perform(&self, context: &mut crate::ProjectContextMut<'_, Self::Project>) {
         if let Some(list) = O::child_list_mut(self.parent.clone(), context) {
             list.remove(self.ptr);
         }
@@ -44,7 +44,7 @@ pub struct InsertChildDelta<O: TreeObj> {
 impl<O: TreeObj> Delta for InsertChildDelta<O> {
     type Project = O::Project;
 
-    fn perform(&self, context: &mut ProjectContext<'_, Self::Project>) {
+    fn perform(&self, context: &mut ProjectContextMut<'_, Self::Project>) {
         if let Some(list) = O::child_list_mut(self.parent.clone(), context) {
             list.insert(self.idx, self.ptr);
         }
@@ -59,7 +59,7 @@ pub struct SetParentDelta<O: TreeObj> {
 impl<O: TreeObj> Delta for SetParentDelta<O> {
     type Project = O::Project;
 
-    fn perform(&self, context: &mut ProjectContext<'_, Self::Project>) {
+    fn perform(&self, context: &mut ProjectContextMut<'_, Self::Project>) {
         if let Some(obj) = context.obj_list_mut().get_mut(self.ptr) {
             *obj.parent_mut() = self.new_parent.clone();
         }
@@ -77,9 +77,9 @@ pub trait TreeObj: Object {
     type TreeData: Serializable<Self::Project>;
 
     /// Get the list of children that points to this object given the parent pointer
-    fn child_list<'a>(parent: Self::ParentPtr, project: &'a Self::Project, objects: &'a <Self::Project as Project>::Objects) -> Option<&'a Self::ChildList>;
+    fn child_list<'a>(parent: Self::ParentPtr, context: &'a ProjectContext<Self::Project>) -> Option<&'a Self::ChildList>;
     /// Get a mutable reference to the list of children that points to this object given the parent pointer
-    fn child_list_mut<'a>(parent: Self::ParentPtr, context: &'a mut ProjectContext<Self::Project>) -> Option<&'a mut Self::ChildList>;
+    fn child_list_mut<'a>(parent: Self::ParentPtr, context: &'a mut ProjectContextMut<Self::Project>) -> Option<&'a mut Self::ChildList>;
     /// Get the parent
     fn parent(&self) -> Self::ParentPtr;
     /// Get a mutable reference to the parent

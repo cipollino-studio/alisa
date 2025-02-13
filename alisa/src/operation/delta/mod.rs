@@ -2,62 +2,24 @@
 mod common;
 pub use common::*;
 
-use crate::{ObjList, Object, Project};
-
-pub struct ProjectContext<'a, P: Project> {
-    pub(crate) project: &'a mut P,
-    pub(crate) objects: &'a mut P::Objects,
-    pub(crate) context: &'a mut P::Context,
-
-    /// Was the project object itself modified?
-    pub(crate) project_modified: &'a mut bool
-}
-
-impl<P: Project> ProjectContext<'_, P> {
-
-    pub fn project(&self) -> &P {
-        self.project
-    }
-    
-    pub fn project_mut(&mut self) -> &mut P {
-        *self.project_modified = true;
-        self.project
-    }
-
-    pub fn obj_list<O: Object<Project = P>>(&self) -> &ObjList<O> {
-        O::list(self.objects)
-    }
-
-    pub fn obj_list_mut<O: Object<Project = P>>(&mut self) -> &mut ObjList<O> {
-        O::list_mut(self.objects)
-    }
-
-    pub fn context(&self) -> &P::Context {
-        &self.context
-    } 
-
-    pub fn context_mut(&mut self) -> &mut P::Context {
-        self.context
-    }
-
-}
+use crate::{ObjList, Object, Project, ProjectContextMut};
 
 /// A tiny change to the project. Used for moving backwards in time for the collaboration conflict resolution system. 
 pub trait Delta {
     type Project: Project;
 
-    fn perform(&self, context: &mut ProjectContext<'_, Self::Project>);
+    fn perform(&self, context: &mut ProjectContextMut<'_, Self::Project>);
 }
 
 pub struct Recorder<'a, P: Project> {
-    pub(crate) context: ProjectContext<'a, P>,
+    pub(crate) context: ProjectContextMut<'a, P>,
     /// The reversed changes recorded while the operation was being executed 
     pub(crate) deltas: Vec<Box<dyn Delta<Project = P>>>,
 }
 
 impl<'a, P: Project> Recorder<'a, P> {
 
-    pub(crate) fn new(context: ProjectContext<'a, P>) -> Self {
+    pub(crate) fn new(context: ProjectContextMut<'a, P>) -> Self {
         Self {
             context,
             deltas: Vec::new(),
@@ -68,7 +30,7 @@ impl<'a, P: Project> Recorder<'a, P> {
         self.deltas.push(Box::new(delta));
     }
 
-    pub fn context<'b>(&'b mut self) -> &'b mut ProjectContext<'a, P> {
+    pub fn context_mut<'b>(&'b mut self) -> &'b mut ProjectContextMut<'a, P> {
         &mut self.context
     }
 

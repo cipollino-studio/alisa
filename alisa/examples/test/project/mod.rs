@@ -77,7 +77,7 @@ impl alisa::Operation for IncrN {
         recorder.project_mut().n += 1;
     }
 
-    fn inverse(&self, _project: &Self::Project, _objects: &ProjectObjects) -> Option<Self::Inverse> {
+    fn inverse(&self, _context: &alisa::ProjectContext<Project>) -> Option<Self::Inverse> {
         Some(DecrN)
     }
 }
@@ -96,7 +96,7 @@ impl alisa::Operation for DecrN {
         recorder.project_mut().n -= 1;
     }
 
-    fn inverse(&self, _project: &Self::Project, _objects: &ProjectObjects) -> Option<Self::Inverse> {
+    fn inverse(&self, _context: &alisa::ProjectContext<Project>) -> Option<Self::Inverse> {
         Some(IncrN)
     }
 }

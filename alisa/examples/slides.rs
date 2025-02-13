@@ -105,11 +105,11 @@ impl alisa::TreeObj for Slide {
     type ChildList = alisa::ChildList<Slide>;
     type TreeData = SlideTreeData;
 
-    fn child_list<'a>(parent: (), project: &'a SlipsProject, objects: &'a SlipsObjects) -> Option<&'a alisa::ChildList<Slide>> {
-        Some(&project.slides)
+    fn child_list<'a>(parent: (), context: &'a alisa::ProjectContext<SlipsProject>) -> Option<&'a alisa::ChildList<Slide>> {
+        Some(&context.project().slides)
     }
 
-    fn child_list_mut<'a>(parent: Self::ParentPtr, context: &'a mut alisa::ProjectContext<Self::Project>) -> Option<&'a mut Self::ChildList> {
+    fn child_list_mut<'a>(parent: Self::ParentPtr, context: &'a mut alisa::ProjectContextMut<Self::Project>) -> Option<&'a mut Self::ChildList> {
         Some(&mut context.project_mut().slides)
     }
 
@@ -210,11 +210,11 @@ impl alisa::TreeObj for TextBox {
     type ChildList = alisa::UnorderedChildList<TextBox>;
     type TreeData = TextBoxTreeData;
 
-    fn child_list<'a>(parent: alisa::Ptr<Slide>, project: &'a SlipsProject, objects: &'a SlipsObjects) -> Option<&'a alisa::UnorderedChildList<TextBox>> {
-        objects.slides.get(parent).map(|slide| &slide.text_boxes)
+    fn child_list<'a>(parent: alisa::Ptr<Slide>, context: &'a alisa::ProjectContext<SlipsProject>) -> Option<&'a alisa::UnorderedChildList<TextBox>> {
+        context.obj_list().get(parent).map(|slide| &slide.text_boxes)
     }
 
-    fn child_list_mut<'a>(parent: alisa::Ptr<Slide>, context: &'a mut alisa::ProjectContext<SlipsProject>) -> Option<&'a mut alisa::UnorderedChildList<TextBox>> {
+    fn child_list_mut<'a>(parent: alisa::Ptr<Slide>, context: &'a mut alisa::ProjectContextMut<SlipsProject>) -> Option<&'a mut alisa::UnorderedChildList<TextBox>> {
         context.obj_list_mut().get_mut(parent).map(|slide| &mut slide.text_boxes)
     }
 

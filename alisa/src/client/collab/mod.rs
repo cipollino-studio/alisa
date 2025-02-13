@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use keychain::KeyChain;
 
-use crate::{rmpv_get, Delta, DeserializationContext, OperationDyn, Project, ProjectContext, Recorder, UnconfirmedOperation};
+use crate::{rmpv_get, Delta, DeserializationContext, OperationDyn, Project, ProjectContextMut, Recorder, UnconfirmedOperation};
 
 use super::{Client, ClientKind};
 
@@ -100,7 +100,7 @@ impl<P: Project> Client<P> {
         // Deserialize the operation from the message
         let operation = (operation_kind.deserialize)(data)?; 
 
-        let mut project_context = ProjectContext {
+        let mut project_context = ProjectContextMut {
             project: &mut self.project,
             objects: &mut self.objects,
             context,
@@ -123,7 +123,7 @@ impl<P: Project> Client<P> {
         // Reapply the operations we've done on top of the inserted operation
         if let Some(collab) = self.kind.as_collab() {
             for unconfirmed_operation in &collab.unconfirmed_operations {
-                let mut recorder = Recorder::new(ProjectContext {
+                let mut recorder = Recorder::new(ProjectContextMut {
                     project: &mut self.project,
                     objects: &mut self.objects,
                     context,

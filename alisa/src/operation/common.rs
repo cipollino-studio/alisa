@@ -12,7 +12,7 @@ macro_rules! project_set_property_delta {
 
                 type Project = $project; 
 
-                fn perform(&self, context: &mut ::alisa::ProjectContext<Self::Project>) {
+                fn perform(&self, context: &mut ::alisa::ProjectContextMut<Self::Project>) {
                     context.project_mut().$property = self.$property.clone();
                 }
 
@@ -50,9 +50,9 @@ macro_rules! project_set_property_operation {
                     })
                 }
 
-                fn inverse(&self, project: &Self::Project, _objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
+                fn inverse(&self, context: &::alisa::ProjectContext<Self::Project>) -> Option<Self::Inverse> {
                     Some(Self {
-                        $property: project.$property.clone()
+                        $property: context.project().$property.clone()
                     })
                 }
 
@@ -76,7 +76,7 @@ macro_rules! object_set_property_delta {
 
                 type Project = <$object as ::alisa::Object>::Project; 
 
-                fn perform(&self, context: &mut ::alisa::ProjectContext<Self::Project>) {
+                fn perform(&self, context: &mut ::alisa::ProjectContextMut<Self::Project>) {
                     if let Some(obj) = context.obj_list_mut().get_mut(self.ptr) {
                         obj.$property = self.[< $property:snake _value >].clone();
                     }
@@ -119,9 +119,9 @@ macro_rules! object_set_property_operation {
                     }
                 }
 
-                fn inverse(&self, _project: &Self::Project, objects: &<Self::Project as ::alisa::Project>::Objects) -> Option<Self::Inverse> {
+                fn inverse(&self, context: &::alisa::ProjectContext<Self::Project>) -> Option<Self::Inverse> {
                     use alisa::Object;
-                    $object::list(objects).get(self.ptr).map(|obj| Self::Inverse {
+                    context.obj_list().get(self.ptr).map(|obj| Self::Inverse {
                         ptr: self.ptr,
                         [< $property:snake _value >]: obj.$property.clone()
                     })

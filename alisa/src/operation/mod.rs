@@ -1,7 +1,7 @@
 
 use std::any::{type_name, Any, TypeId};
 
-use crate::{Serializable, DeserializationContext, Project, SerializationContext};
+use crate::{DeserializationContext, Project, ProjectContext, Serializable, SerializationContext};
 
 mod common;
 
@@ -22,7 +22,7 @@ pub trait Operation: Sized + Any + Serializable<Self::Project> {
     /// Perform the operation.
     fn perform(&self, recorder: &mut Recorder<'_, Self::Project>); 
     /// Get the inverse operation. 
-    fn inverse(&self, project: &Self::Project, objects: &<Self::Project as Project>::Objects) -> Option<Self::Inverse>;
+    fn inverse(&self, context: &ProjectContext<Self::Project>) -> Option<Self::Inverse>;
 
 }
 
@@ -31,7 +31,7 @@ pub(crate) trait OperationDyn {
     type Project: Project;
 
     fn perform(&self, recorder: &mut Recorder<'_, Self::Project>);
-    fn inverse(&self, project: &Self::Project, objects: &<Self::Project as Project>::Objects) -> Option<Box<dyn OperationDyn<Project = Self::Project>>>;
+    fn inverse(&self, context: &ProjectContext<Self::Project>) -> Option<Box<dyn OperationDyn<Project = Self::Project>>>;
     fn name(&self) -> &'static str;
     fn serialize(&self) -> rmpv::Value;
 }
@@ -43,8 +43,8 @@ impl<O: Operation + Serializable<O::Project>> OperationDyn for O {
         self.perform(recorder);
     }
 
-    fn inverse(&self, project: &Self::Project, objects: &<Self::Project as Project>::Objects) -> Option<Box<dyn OperationDyn<Project = Self::Project>>> {
-        if let Some(inverse) = <Self as Operation>::inverse(self, project, objects) {
+    fn inverse(&self, context: &ProjectContext<Self::Project>) -> Option<Box<dyn OperationDyn<Project = Self::Project>>> {
+        if let Some(inverse) = <Self as Operation>::inverse(self, context) {
             return Some(Box::new(inverse)); 
         }
         None

@@ -2,7 +2,7 @@
 
 use std::{any::{type_name, TypeId}, cell::RefCell};
 
-use crate::{Act, Action, Ptr, Object, Operation, OperationDyn, Project, ProjectContext, Recorder};
+use crate::{Act, Action, Object, Operation, OperationDyn, Project, ProjectContext, ProjectContextMut, Ptr, Recorder};
 
 mod local;
 use local::*;
@@ -96,7 +96,7 @@ impl<P: Project> Client<P> {
             }
         }
 
-        let inverse = operation.inverse(&self.project, &self.objects);
+        let inverse = operation.inverse(&self.context());
         self.perform_dyn(Box::new(operation));
         if let Some(inverse) = inverse {
             let act = Act {
@@ -118,7 +118,7 @@ impl<P: Project> Client<P> {
 
         // Perform queued operations 
         for operation in operations {
-            let mut recorder = Recorder::new(ProjectContext {
+            let mut recorder = Recorder::new(ProjectContextMut {
                 project: &mut self.project,
                 objects: &mut self.objects,
                 context,
@@ -168,6 +168,13 @@ impl<P: Project> Client<P> {
                     ("key".into(), ptr.key.into()),
                 ]));
             },
+        }
+    }
+
+    pub(crate) fn context(&self) -> ProjectContext<P> {
+        ProjectContext {
+            project: &self.project,
+            objects: &self.objects,
         }
     }
 

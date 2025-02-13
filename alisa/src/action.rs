@@ -27,7 +27,7 @@ impl<P: Project> Action<P> {
         let mut inverse_acts = Vec::new();
         self.acts.reverse();
         for act in self.acts {
-            if let Some(inverse) = act.operation.inverse(&client.project, &client.objects) {
+            if let Some(inverse) = act.operation.inverse(&client.context()) {
                 inverse_acts.push(Act { operation: inverse });
             }
             client.perform_dyn(act.operation);

@@ -45,14 +45,14 @@ impl alisa::TreeObj for Folder {
     type ChildList = alisa::UnorderedChildList<Folder>;
     type TreeData = FolderTreeData;
 
-    fn child_list<'a>(parent: Self::ParentPtr, project: &'a Project, objects: &'a <Self::Project as alisa::Project>::Objects) -> Option<&'a Self::ChildList> {
+    fn child_list<'a>(parent: Self::ParentPtr, context: &'a alisa::ProjectContext<Project>) -> Option<&'a Self::ChildList> {
         if parent.is_null() {
-            return Some(&project.folders);
+            return Some(&context.project().folders);
         }
-        Some(&objects.folders.get(parent)?.folders)
+        Some(&context.obj_list().get(parent)?.folders)
     }
 
-    fn child_list_mut<'a>(parent: Self::ParentPtr, recorder: &'a mut alisa::ProjectContext<Self::Project>) -> Option<&'a mut Self::ChildList> {
+    fn child_list_mut<'a>(parent: Self::ParentPtr, recorder: &'a mut alisa::ProjectContextMut<Self::Project>) -> Option<&'a mut Self::ChildList> {
         if parent.is_null() {
             return Some(&mut recorder.project_mut().folders);
         }
